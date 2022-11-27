@@ -1,4 +1,5 @@
-package se.cs.lth.student.IO.Logger
+
+package se.lth.cs.student.battle3d.io
 
 
 import java.io.FileOutputStream

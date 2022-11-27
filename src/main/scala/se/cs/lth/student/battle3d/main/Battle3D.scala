@@ -1,6 +1,6 @@
 package se.cs.lth.student.battle3d.main
 
-import se.cs.lth.student.IO.Logger.Logger
+import se.lth.cs.student.battle3d.io.Logger
 
 /** Main class and Entry point into the application
  * @author @Kss0N
