@@ -21,4 +21,4 @@ Enter the battle arena of the robot champions. Use your skills and intelligence 
 - [ ] Event System
 
 - [ ] Tools
-  - [ ] Logger
+  - [X] Logger
