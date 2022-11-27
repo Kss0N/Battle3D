@@ -10,4 +10,6 @@ import se.lth.cs.student.battle3d.io.Logger
 object Battle3D:
     val logger = Logger("Battle3D")
 
-    def main(args: Array[String]): Unit = ???
+    def main(args: Array[String]): Unit = 
+        Logger.printInfo("Starting Battle3D Session")
+        

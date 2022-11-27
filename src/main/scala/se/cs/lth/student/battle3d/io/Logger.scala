@@ -71,7 +71,7 @@ case class Logger (private val filePath: String = "battle3d.log"):
     import Logger.Severity
 
     private val appendedPath = 
-        if filePath.contains(".log") then filePath
+        if filePath.drop(filePath.length()-4) == ".log" then filePath
         else filePath + ".log"
     private val file        = new FileOutputStream(appendedPath)
     private val outWriter   = new OutputStreamWriter(file)      
