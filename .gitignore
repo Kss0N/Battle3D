@@ -1,5 +1,5 @@
 .*/
-tast/
+target/
 
 *.class
 *.log
