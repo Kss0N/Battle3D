@@ -1,0 +1,8 @@
+.*/
+tast/
+
+*.class
+*.log
+*.cache
+*.tasty
+*.jar
