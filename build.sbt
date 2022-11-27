@@ -31,7 +31,7 @@ resolvers += Resolver.mavenLocal
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.1"
 libraryDependencies += "org.jogamp.jogl" % "jogl-main" % "2.3.2"
-libraryDependencies += "com.github.darrenjw" % "scala-glm_2.13" % "0.4"
+libraryDependencies += "io.github.java-graphics" % "glm" % "1.0.1"
 
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the scala-parser-combinators dependency to the set of dependencies
