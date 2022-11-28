@@ -24,10 +24,10 @@ object Logger:
         case ERROR  extends Severity("\u001B[232m") //Orange
         case FATAL  extends Severity("\u001B[31m")  //Red
 
-    private object Severity:
-        val reset   = "\u001B[0m"   //reset ansi state
-        val bold    = "\u001B[1m"   //same as html `<b>`
-        val unbold  = "\u001B[21m"  //same as html `<\b>`
+    object Severity:
+        private[Logger] val reset   = "\u001B[0m"   //reset ansi state
+        private[Logger] val bold    = "\u001B[1m"   //same as html `<b>`
+        private[Logger] val unbold  = "\u001B[21m"  //same as html `<\b>`
 
     //Comfortability items:
 
