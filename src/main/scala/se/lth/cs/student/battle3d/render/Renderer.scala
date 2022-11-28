@@ -3,6 +3,9 @@ package se.lth.cs.student.battle3d.render
 import com.jogamp.opengl.DebugGL4
 import com.jogamp.opengl.FBObject
 import com.jogamp.opengl.DefaultGLCapabilitiesChooser
+import com.jogamp.opengl.GL2GL3
+import com.jogamp.opengl.GL2ES3
+import com.jogamp.opengl.GL2ES2
 import com.jogamp.opengl.GL4
 import com.jogamp.opengl.GLBase
 import com.jogamp.opengl.GLContext
@@ -18,32 +21,17 @@ import com.jogamp.opengl.util.GLBuffers
 import com.jogamp.newt.opengl.GLWindow
 
 
-
-
-
-import com.jogamp.opengl.GL2GL3
-import com.jogamp.opengl.GL2ES3
-import com.jogamp.opengl.GL2ES2
-
 import se.lth.cs.student.battle3d.io.Logger
 
 import se.lth.cs.student.battle3d.main.Battle3D
 
 import se.lth.cs.student.battle3d.event.MyDebugListener
+import se.lth.cs.student.battle3d.event.MyGestureHandler
 import se.lth.cs.student.battle3d.event.MyGLEventListener
 import se.lth.cs.student.battle3d.event.MyKeyListener
 import se.lth.cs.student.battle3d.event.MyMouseListener
+import se.lth.cs.student.battle3d.event.MySurfaceUpdatedListener
 import se.lth.cs.student.battle3d.event.MyWindowListener
-import se.lth.cs.student.battle3d.event.MyGestureHandler
-
-
-
-
-
-
-
-import com.jogamp.nativewindow.SurfaceUpdatedListener
-import com.jogamp.nativewindow.NativeSurface
 
 object Renderer:
     val profile = GLProfile.get(GLProfile.GL4)
@@ -51,14 +39,6 @@ object Renderer:
     val window = GLWindow.create(capabilities)
     val myGL = window.getGL().getGL4bc()
     val gl = DebugGL4(myGL)
-    
-
-
-
-    
-    class MySurfaceUpdatedListener extends SurfaceUpdatedListener:
-
-        override def surfaceUpdated(updater: Object, ns: NativeSurface, when: Long): Unit = ()
 
     def init(startTimeMS: Long, isDebug: Boolean) = 
 
