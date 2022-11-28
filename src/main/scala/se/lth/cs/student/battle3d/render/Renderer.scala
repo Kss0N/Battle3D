@@ -26,6 +26,7 @@ import com.jogamp.opengl.GL2ES3
 import com.jogamp.opengl.GL2ES2
 
 import se.lth.cs.student.battle3d.io.Logger
+
 import se.lth.cs.student.battle3d.main.Battle3D
 
 import se.lth.cs.student.battle3d.event.MyDebugListener
@@ -33,13 +34,13 @@ import se.lth.cs.student.battle3d.event.MyGLEventListener
 import se.lth.cs.student.battle3d.event.MyKeyListener
 import se.lth.cs.student.battle3d.event.MyMouseListener
 import se.lth.cs.student.battle3d.event.MyWindowListener
+import se.lth.cs.student.battle3d.event.MyGestureHandler
 
 
 
 
 
-import com.jogamp.newt.event.GestureHandler
-import com.jogamp.newt.event.InputEvent
+
 
 import com.jogamp.nativewindow.SurfaceUpdatedListener
 import com.jogamp.nativewindow.NativeSurface
@@ -53,12 +54,7 @@ object Renderer:
     
 
 
-    class MyGestureHandler extends GestureHandler:
-        override def clear(clearStarted: Boolean): Unit = ()
-        override def getGestureEvent(): InputEvent = null
-        override def hasGesture(): Boolean = false
-        override def isWithinGesture(): Boolean = false
-        override def process(e: InputEvent): Boolean = false
+
     
     class MySurfaceUpdatedListener extends SurfaceUpdatedListener:
 
