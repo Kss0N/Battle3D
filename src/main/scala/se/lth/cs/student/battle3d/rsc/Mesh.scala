@@ -1,4 +1,4 @@
-package se.lth.cs.student.battle3d.gfx
+package se.lth.cs.student.battle3d.rsc
 
 import glm.vec._4.Vec4
 import glm.vec._3.Vec3

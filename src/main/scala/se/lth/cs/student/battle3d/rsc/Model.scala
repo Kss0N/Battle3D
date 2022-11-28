@@ -1,4 +1,4 @@
-package se.lth.cs.student.battle3d.gfx
+package se.lth.cs.student.battle3d.rsc
 
 import glm.mat._4.Mat4
 
