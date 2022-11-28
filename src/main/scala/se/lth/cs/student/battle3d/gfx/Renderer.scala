@@ -13,6 +13,8 @@ import com.jogamp.opengl.GL4
 import com.jogamp.opengl.GLAutoDrawable
 import com.jogamp.opengl.GLContext
 import com.jogamp.opengl.GLCapabilities
+import com.jogamp.opengl.GLDrawable
+import com.jogamp.opengl.GLEventListener
 import com.jogamp.opengl.GLPipelineFactory
 import com.jogamp.opengl.GLProfile
 
@@ -21,22 +23,17 @@ import com.jogamp.opengl.util.GLBuffers
 
 import com.jogamp.newt.opengl.GLWindow
 
-
-
 import se.lth.cs.student.battle3d.io.Logger
 
 import se.lth.cs.student.battle3d.main.Battle3D
 
 import se.lth.cs.student.battle3d.event.MainWindow
 import se.lth.cs.student.battle3d.event.MyDebugListener
-import com.jogamp.opengl.GLEventListener
-import com.jogamp.opengl.GLDrawable
-
 
 
 final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
 
-    private def getGL(version: Int = 4)(using window: GLAutoDrawable): GL = 
+    private def getGL(window: GLAutoDrawable, version: Int = 4): GL = 
         val masterGL = window.getGL()
         val gl = version match 
             case 1 => masterGL.getGL()
@@ -51,6 +48,10 @@ final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
                 case 4 => DebugGL4(gl.asInstanceOf[GL4]) 
         else 
             gl
+    
+    private def initPipeline(): Unit = ???
+
+
 
     //Procedure called every time we render something
     override def display(drawable: GLAutoDrawable): Unit = ()
@@ -63,10 +64,15 @@ final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
         if isDebug then
             drawable.getContext().addGLDebugListener(new MyDebugListener())
             drawable.getContext().enableGLDebugMessage(true)
-    
-    //When resized
-    override def reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int): Unit = ()
+        given gl: GL4 = getGL(drawable, 4).asInstanceOf[GL4]
+        val (width,height) = MainWindow.dim
 
+        gl.glViewport(0,0,width,height)
+    
+    //When resized or moved
+    override def reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int): Unit = 
+        val gl = getGL(drawable)
+        gl.glViewport(0,0,width,height)
 
 object Renderer
 
