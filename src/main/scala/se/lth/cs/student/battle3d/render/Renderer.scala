@@ -7,7 +7,6 @@ import com.jogamp.opengl.GL4
 import com.jogamp.opengl.GLBase
 import com.jogamp.opengl.GLContext
 import com.jogamp.opengl.GLCapabilities
-
 import com.jogamp.opengl.GLEventListener
 import com.jogamp.opengl.GLPipelineFactory
 import com.jogamp.opengl.GLProfile
@@ -18,8 +17,7 @@ import com.jogamp.opengl.util.GLBuffers
 
 import com.jogamp.newt.opengl.GLWindow
 
-import com.jogamp.newt.event.KeyEvent
-import com.jogamp.newt.event.KeyListener
+
 import com.jogamp.newt.event.MouseListener
 import com.jogamp.newt.event.WindowListener
 
@@ -29,6 +27,9 @@ import com.jogamp.opengl.GL2ES2
 
 import se.lth.cs.student.battle3d.io.Logger
 import se.lth.cs.student.battle3d.main.Battle3D
+
+import se.lth.cs.student.battle3d.event.MyDebugListener
+import se.lth.cs.student.battle3d.event.MyKeyListener
 
 import com.jogamp.newt.event.MouseEvent
 import com.jogamp.newt.event.WindowEvent
@@ -51,10 +52,7 @@ object Renderer:
 
 
     
-    class MyKeyListener extends KeyListener:
 
-        override def keyPressed(e : KeyEvent): Unit = ()
-        override def keyReleased(e: KeyEvent): Unit = ()
     
     class MyMouseListener extends com.jogamp.newt.event.MouseListener:
         override def mouseClicked(e: MouseEvent): Unit = ()
