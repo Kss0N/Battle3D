@@ -9,7 +9,7 @@ import com.jogamp.opengl.GLDebugMessage
 import com.jogamp.opengl.GL2ES2
 
 
-class MyDebugListener extends GLDebugListener:
+final class MyDebugListener extends GLDebugListener:
 
         def messageSent(event: GLDebugMessage) : Unit =
             //see https://www.khronos.org/opengl/wiki/Debug_Output#Message_Components

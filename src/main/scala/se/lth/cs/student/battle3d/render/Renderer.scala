@@ -1,4 +1,4 @@
-package se.cs.lth.student.battle3d.render
+package se.lth.cs.student.battle3d.render
 
 import com.jogamp.opengl.DebugGL4
 import com.jogamp.opengl.FBObject
@@ -18,7 +18,7 @@ import com.jogamp.opengl.util.GLBuffers
 import com.jogamp.newt.opengl.GLWindow
 
 
-import com.jogamp.newt.event.MouseListener
+
 import com.jogamp.newt.event.WindowListener
 
 import com.jogamp.opengl.GL2GL3
@@ -30,8 +30,9 @@ import se.lth.cs.student.battle3d.main.Battle3D
 
 import se.lth.cs.student.battle3d.event.MyDebugListener
 import se.lth.cs.student.battle3d.event.MyKeyListener
+import se.lth.cs.student.battle3d.event.MyMouseListener
 
-import com.jogamp.newt.event.MouseEvent
+
 import com.jogamp.newt.event.WindowEvent
 import com.jogamp.newt.event.WindowUpdateEvent
 import com.jogamp.opengl.GLAutoDrawable
@@ -54,15 +55,7 @@ object Renderer:
     
 
     
-    class MyMouseListener extends com.jogamp.newt.event.MouseListener:
-        override def mouseClicked(e: MouseEvent): Unit = ()
-        override def mouseDragged(e: MouseEvent): Unit = ()
-        override def mouseEntered(e: MouseEvent): Unit = ()
-        override def mouseExited(e: MouseEvent): Unit = ()
-        override def mouseMoved(e: MouseEvent): Unit = ()
-        override def mousePressed(e: MouseEvent): Unit = ()
-        override def mouseReleased(e: MouseEvent): Unit = ()
-        override def mouseWheelMoved(e: MouseEvent): Unit = ()
+
         
     class MyWindowListener extends WindowListener:
         override def windowDestroyNotify(e: WindowEvent): Unit = ()
