@@ -7,8 +7,7 @@ import com.jogamp.opengl.GL4
 import com.jogamp.opengl.GLBase
 import com.jogamp.opengl.GLContext
 import com.jogamp.opengl.GLCapabilities
-import com.jogamp.opengl.GLDebugListener
-import com.jogamp.opengl.GLDebugMessage
+
 import com.jogamp.opengl.GLEventListener
 import com.jogamp.opengl.GLPipelineFactory
 import com.jogamp.opengl.GLProfile
