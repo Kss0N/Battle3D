@@ -7,7 +7,7 @@ import com.jogamp.opengl.GL4
 import com.jogamp.opengl.GLBase
 import com.jogamp.opengl.GLContext
 import com.jogamp.opengl.GLCapabilities
-import com.jogamp.opengl.GLEventListener
+
 import com.jogamp.opengl.GLPipelineFactory
 import com.jogamp.opengl.GLProfile
 
@@ -29,6 +29,7 @@ import se.lth.cs.student.battle3d.io.Logger
 import se.lth.cs.student.battle3d.main.Battle3D
 
 import se.lth.cs.student.battle3d.event.MyDebugListener
+import se.lth.cs.student.battle3d.event.MyGLEventListener
 import se.lth.cs.student.battle3d.event.MyKeyListener
 import se.lth.cs.student.battle3d.event.MyMouseListener
 import se.lth.cs.student.battle3d.event.MyWindowListener
@@ -36,7 +37,7 @@ import se.lth.cs.student.battle3d.event.MyWindowListener
 
 
 
-import com.jogamp.opengl.GLAutoDrawable
+
 import com.jogamp.newt.event.GestureHandler
 import com.jogamp.newt.event.InputEvent
 
@@ -49,22 +50,8 @@ object Renderer:
     val window = GLWindow.create(capabilities)
     val myGL = window.getGL().getGL4bc()
     val gl = DebugGL4(myGL)
-
     
 
-
-    
-
-    
-
-        
-
-    
-    class MyGLEventListener extends GLEventListener:
-        override def display(drawable: GLAutoDrawable): Unit = ()
-        override def dispose(drawable: GLAutoDrawable): Unit = ()
-        override def init(drawable: GLAutoDrawable): Unit = ()
-        override def reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int): Unit = ()
 
     class MyGestureHandler extends GestureHandler:
         override def clear(clearStarted: Boolean): Unit = ()

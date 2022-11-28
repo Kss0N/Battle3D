@@ -4,7 +4,7 @@ import com.jogamp.newt.event.WindowEvent
 import com.jogamp.newt.event.WindowListener
 import com.jogamp.newt.event.WindowUpdateEvent
 
-class MyWindowListener extends WindowListener:
+final class MyWindowListener extends WindowListener:
     override def windowDestroyNotify(e: WindowEvent): Unit = ()
     override def windowGainedFocus(e: WindowEvent): Unit = ()
     override def windowDestroyed(e: WindowEvent): Unit = ()
