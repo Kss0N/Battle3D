@@ -1,37 +1,9 @@
-package se.cs.lth.student.battle3d.render
+package se.lth.cs.student.battle3d.event
 
-import com.jogamp.opengl.DebugGL4
-import com.jogamp.opengl.FBObject
-import com.jogamp.opengl.DefaultGLCapabilitiesChooser
-import com.jogamp.opengl.GL4
-import com.jogamp.opengl.GLBase
-import com.jogamp.opengl.GLContext
-import com.jogamp.opengl.GLCapabilities
-import com.jogamp.opengl.GLDebugListener
-import com.jogamp.opengl.GLDebugMessage
-import com.jogamp.opengl.GLPipelineFactory
-import com.jogamp.opengl.GLProfile
-
-import com.jogamp.opengl.util.GLBuffers
-
-import com.jogamp.newt.opengl.GLWindow
-
-import com.jogamp.opengl.GL2GL3
-import com.jogamp.opengl.GL2ES3
-import com.jogamp.opengl.GL2ES2
-
-import se.lth.cs.student.battle3d.io.Logger
 import se.lth.cs.student.battle3d.main.Battle3D
 
-object Renderer:
-    val profile = GLProfile.get(GLProfile.GL4)
-    val capabilities = GLCapabilities(profile)
-    val window = GLWindow.create(capabilities)
-    val myGL = window.getGL().getGL4bc()
-    val gl = DebugGL4(myGL)
-    
-    class DebugListener extends GLDebugListener:
 
+class MyDebugListener extends GLDebugListener:
 
         def messageSent(event: GLDebugMessage) : Unit =
             //see https://www.khronos.org/opengl/wiki/Debug_Output#Message_Components
@@ -51,11 +23,3 @@ object Renderer:
             val `type`  = event.getDbgType() 
             val msg     = event.getDbgMsg()
             Battle3D.logger.newEntry(severity, "(OpenGL) "+ source+ ": " + msg)
-
-
-    def init(): Unit = 
-
-
-        window.getContext().addGLDebugListener(new DebugListener())
-        
-
