@@ -24,6 +24,11 @@ import se.lth.cs.student.battle3d.event.MainWindow
 
 object Renderer:
     val gl = MainWindow.getGL()
+
+    def init(isDebug: Boolean): Unit = 
+        val (width, height) = MainWindow.dim
+        gl.glViewport(0,0, width, height)
+
     
 
     

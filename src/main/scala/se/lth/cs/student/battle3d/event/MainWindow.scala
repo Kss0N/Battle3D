@@ -2,52 +2,54 @@ package se.lth.cs.student.battle3d.event
 
 import com.jogamp.newt.opengl.GLWindow
 
-import com.jogamp.opengl.GLCapabilities
-import com.jogamp.opengl.GLProfile
 
+import com.jogamp.opengl.DebugGL2
+import com.jogamp.opengl.DebugGL3
+import com.jogamp.opengl.DebugGL4
 import com.jogamp.opengl.GL
 import com.jogamp.opengl.GL2
 import com.jogamp.opengl.GL3
 import com.jogamp.opengl.GL4
+import com.jogamp.opengl.GLCapabilities
+import com.jogamp.opengl.GLContext
+import com.jogamp.opengl.GLProfile
 
-import com.jogamp.opengl.DebugGL
-import com.jogamp.opengl.DebugGL2
-import com.jogamp.opengl.DebugGL3
-import com.jogamp.opengl.DebugGL4
+import com.jogamp.opengl.util.Animator
+
+
+
 
 object MainWindow:
     private var window: GLWindow = null 
+    private var animator: Animator = null
     private var isDebug: Boolean = false
-
 
     def isFullScreen : Boolean = window.isFullscreen()
     def isVisible    : Boolean = window.isVisible()
     def dim : (Int, Int) = 
         (window.getWidth(), window.getHeight())
 
+    def display() : Unit = window.display()
+
     def init(isDebug: Boolean): Unit = 
         MainWindow.isDebug = isDebug
 
         val profile = GLProfile.get(GLProfile.GL4)
-        val capabilities = GLCapabilities(profile)
+        val capabilities = new GLCapabilities(profile)
         window = GLWindow.create(capabilities)
+        window.setContextCreationFlags(GLContext.CTX_OPTION_DEBUG)
 
-        if isDebug then
-            window.getContext().addGLDebugListener(new MyDebugListener())
-            window.getContext().enableGLDebugMessage(true)
-        
+        window.setTitle("Battle3D")
+        window.setFullscreen(true)
+        window.setVisible(true)
+
         window.addGestureHandler            (new MyGestureHandler)  
-        window.addGLEventListener           (new MyGLEventListener) 
+        window.addGLEventListener           (new MyGLEventListener(isDebug)) 
         window.addKeyListener               (new MyKeyListener)
         window.addMouseListener             (new MyMouseListener)
         window.addSurfaceUpdatedListener    (new MySurfaceUpdatedListener)
         window.addWindowListener            (new MyWindowListener)
         window.getScreen().addMonitorModeListener(new MyMonitorModeListener)
-        
-        window.setTitle("Battle3D")
-        window.display()
-        window.setFullscreen(true)
-        window.setVisible(true)
 
 
     def destroy(): Unit = ???
