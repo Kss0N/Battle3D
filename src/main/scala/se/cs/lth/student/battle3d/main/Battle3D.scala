@@ -1,4 +1,4 @@
-package se.cs.lth.student.battle3d.main
+package se.lth.cs.student.battle3d.main
 
 import se.lth.cs.student.battle3d.io.Logger
 
