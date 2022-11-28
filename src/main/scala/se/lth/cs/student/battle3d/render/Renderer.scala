@@ -19,7 +19,7 @@ import com.jogamp.newt.opengl.GLWindow
 
 
 
-import com.jogamp.newt.event.WindowListener
+
 
 import com.jogamp.opengl.GL2GL3
 import com.jogamp.opengl.GL2ES3
@@ -31,10 +31,11 @@ import se.lth.cs.student.battle3d.main.Battle3D
 import se.lth.cs.student.battle3d.event.MyDebugListener
 import se.lth.cs.student.battle3d.event.MyKeyListener
 import se.lth.cs.student.battle3d.event.MyMouseListener
+import se.lth.cs.student.battle3d.event.MyWindowListener
 
 
-import com.jogamp.newt.event.WindowEvent
-import com.jogamp.newt.event.WindowUpdateEvent
+
+
 import com.jogamp.opengl.GLAutoDrawable
 import com.jogamp.newt.event.GestureHandler
 import com.jogamp.newt.event.InputEvent
@@ -57,14 +58,7 @@ object Renderer:
     
 
         
-    class MyWindowListener extends WindowListener:
-        override def windowDestroyNotify(e: WindowEvent): Unit = ()
-        override def windowGainedFocus(e: WindowEvent): Unit = ()
-        override def windowDestroyed(e: WindowEvent): Unit = ()
-        override def windowLostFocus(e: WindowEvent): Unit = ()
-        override def windowMoved(e: WindowEvent): Unit = ()
-        override def windowRepaint(e: WindowUpdateEvent): Unit = ()
-        override def windowResized(e: WindowEvent): Unit = ()
+
     
     class MyGLEventListener extends GLEventListener:
         override def display(drawable: GLAutoDrawable): Unit = ()
