@@ -26,10 +26,11 @@ import com.jogamp.opengl.util.glsl.fixedfunc.ShaderSelectionMode
 import com.jogamp.opengl.util.glsl.sdk.CompileShader
 import com.jogamp.opengl.util.glsl.sdk.CompileShaderNVidia
 
-case class Shader private (val program: Int)(using gl: GL4):
+final case class Shader private (val program: Int)(using gl: GL4):
+    def destroy(): Unit = 
+        gl.glDeleteProgram(program)
     def activate(): Unit = 
         gl.glUseProgram(program)
-        
     //TODO: Implement
     //def isActive : Boolean =
     //
@@ -60,16 +61,20 @@ object Shader:
             .filter(_ contains ".frag")
         val geomPaths : Seq[String] = paths
             .filter(_ contains ".geom")
+
         if vertPaths.length == 0 || fragPaths.length == 0 then
             throw new IllegalArgumentException("To create a shader, there needs to be at least one vertex shader source and one fragment shader source")
+        
         val vertShader = makeShader(GL2ES2.GL_VERTEX_SHADER, vertPaths)
         val fragShader = makeShader(GL2ES2.GL_FRAGMENT_SHADER, fragPaths)
         
         val program = ShaderProgram()
-        Vector(vertShader, fragShader).foreach{
-            program.add(_)
-        }
+        program.add(vertShader)
+        program.add(fragShader)
         program.link(gl, null)
+        vertShader.destroy(gl)
+        vertShader.destroy(gl)
+        
         Shader(program.id())
 
 

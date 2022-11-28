@@ -32,6 +32,7 @@ import se.lth.cs.student.battle3d.event.MyDebugListener
 
 
 final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
+    val shaders = collection.mutable.ArrayBuffer.empty[Shader]
 
     private def getGL(window: GLAutoDrawable, version: Int = 4): GL = 
         val masterGL = window.getGL()
@@ -54,10 +55,12 @@ final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
 
 
     //Procedure called every time we render something
-    override def display(drawable: GLAutoDrawable): Unit = ()
+    override def display(drawable: GLAutoDrawable): Unit = 
+        given gl: GL = getGL(drawable).asInstanceOf[GL4]
 
     //Called at shutdown
-    override def dispose(drawable: GLAutoDrawable): Unit = ()
+    override def dispose(drawable: GLAutoDrawable): Unit =
+        given gl: GL = getGL(drawable).asInstanceOf[GL4]
 
     //Called at startup
     override def init(drawable: GLAutoDrawable): Unit =
@@ -71,7 +74,7 @@ final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
     
     //When resized or moved
     override def reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int): Unit = 
-        val gl = getGL(drawable)
+        given gl: GL = getGL(drawable).asInstanceOf[GL4]
         gl.glViewport(0,0,width,height)
 
 object Renderer
