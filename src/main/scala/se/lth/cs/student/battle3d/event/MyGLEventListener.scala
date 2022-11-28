@@ -19,10 +19,6 @@ final class MyGLEventListener(val isDebug: Boolean) extends GLEventListener:
         if isDebug then
             drawable.getContext().addGLDebugListener(new MyDebugListener())
             drawable.getContext().enableGLDebugMessage(true)
-
-
-        Battle3D.isGLinitialized = true
-        drawable.getGL().getGL4().glViewport(0,0,10,10)
     
     //When resized
     override def reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int): Unit = ()

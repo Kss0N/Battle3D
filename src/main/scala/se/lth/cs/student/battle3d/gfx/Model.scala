@@ -1,4 +1,4 @@
-package se.cs.lth.student.battle3d.render
+package se.lth.cs.student.battle3d.gfx
 
 import glm.mat._4.Mat4
 
