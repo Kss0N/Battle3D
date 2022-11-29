@@ -18,15 +18,13 @@ package se.lth.cs.student.battle3d.gl
 */
 final case class Usage(val `val`: Int)
 
-
 object Usage:
-  object P:
-    val STREAM  = 0
-    val STATIC  = 4
-    val DYNAMIC = 8
-  object S:
-    val DRAW    = 0
-    val READ    = 1
-    val COPY    = 2
+  val STREAM  = 0
+  val STATIC  = 4
+  val DYNAMIC = 8
+
+  val DRAW    = 0
+  val READ    = 1
+  val COPY    = 2
 
   def apply(primary: Int, secondary: Int) = new Usage(0x88E0 + primary + secondary)
