@@ -33,6 +33,7 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 libraryDependencies += "org.jogamp.jogl" % "jogl-all-main" % "2.3.2"
 libraryDependencies += "org.jogamp.gluegen" % "gluegen-rt-main" % "2.3.2"
 libraryDependencies += "io.github.java-graphics" % "glm" % "1.0.1"
+libraryDependencies += "org.json" % "json" % "20180813"
 
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the scala-parser-combinators dependency to the set of dependencies
