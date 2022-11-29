@@ -18,3 +18,5 @@ abstract class GLBuffer(val obj: Int)(using gl: GL4):
     
     def bind(): Unit =
         gl.glBindBuffer(target.get, obj)
+    def unbind(): Unit =
+        gl.glBindBuffer(target.get, 0)
