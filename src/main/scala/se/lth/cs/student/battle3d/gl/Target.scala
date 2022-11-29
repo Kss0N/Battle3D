@@ -8,7 +8,7 @@ import com.jogamp.opengl.GL3ES3
 
 
 
-enum Target(val `val`: Int):
+enum Target private(`val`: Int) extends GLval(`val`):
     case ARRAY_BUFFER               extends Target(GL.GL_ARRAY_BUFFER)
     case ATOMIC_COUNTER_BUFFER      extends Target(GL2ES3.GL_ATOMIC_COUNTER_BUFFER)
     case COPY_READ_BUFFER           extends Target(GL2ES3.GL_COPY_READ_BUFFER)

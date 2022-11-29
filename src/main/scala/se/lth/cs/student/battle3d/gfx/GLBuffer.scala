@@ -1,13 +1,14 @@
 package se.lth.cs.student.battle3d.gfx
 
-import se.lth.cs.student.battle3d.gl.Usage
+import se.lth.cs.student.battle3d.gl.{Usage, Target}
+
 
 import com.jogamp.opengl.GL4
 
 import java.nio.Buffer
 
 abstract class GLBuffer(val obj: Int)(using gl: GL4):
-    val target: Int 
+    val target: Target 
 
     def bufferData(size: Long, data: Buffer, usage: Usage = Usage(Usage.STATIC, Usage.DRAW)): Unit =
         gl.glNamedBufferData(obj, size, data, usage.`val`)
@@ -16,4 +17,4 @@ abstract class GLBuffer(val obj: Int)(using gl: GL4):
         gl.glNamedBufferSubData(obj, offset, size, data)
     
     def bind(): Unit =
-        gl.glBindBuffer(target, obj)
+        gl.glBindBuffer(target.get, obj)
