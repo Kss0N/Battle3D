@@ -45,11 +45,9 @@ import com.jogamp.opengl.{
     GLOffscreenAutoDrawable,
 
     GLProfile,
+
+    TraceGL4
 }
-import com.jogamp.newt.opengl.GLWindow
-import com.jogamp.opengl.util.GLArrayDataClient
-import com.jogamp.opengl.util.GLArrayDataServer
-import com.jogamp.opengl.util.GLBuffers
 
 
 final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
