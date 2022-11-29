@@ -1,5 +1,7 @@
 package se.lth.cs.student.battle3d.gfx
 
+import se.lth.cs.student.battle3d.io.Logger
+
 import java.io.{FileInputStream, BufferedInputStream, StringReader}
 
 import com.jogamp.opengl.{GL2ES2, GL4}
@@ -12,6 +14,7 @@ import com.jogamp.opengl.util.glsl.{
 }
 import com.jogamp.opengl.util.glsl.fixedfunc.{FixedFuncUtil, ShaderSelectionMode}
 import com.jogamp.opengl.util.glsl.sdk.{CompileShader, CompileShaderNVidia}
+import java.io.IOException
 
 
 
@@ -33,15 +36,22 @@ object Shader:
 
     private def makeShader(`type`: Int, paths: Seq[String])(using gl: GL4): ShaderCode = 
         val content : Seq[CharSequence] = paths.map{ path => 
-            val fileInputStream = new FileInputStream(path)
-            val bufferedInputStream = new BufferedInputStream(fileInputStream)
-            bufferedInputStream.readAllBytes().toString()
+            var bufferedInputStream: BufferedInputStream = null
+            try
+                val fileInputStream = new FileInputStream(path)
+                bufferedInputStream = new BufferedInputStream(fileInputStream)
+                bufferedInputStream.readAllBytes().toString()
+            catch 
+                case e: IOException => 
+                    Logger.printFatal("File" + path + "Does not exist")
+                    ""
+            finally
+                bufferedInputStream.close()
         }
         val shader = ShaderCode(`type`, content.length, Array(content.toArray))
         shader.compile(gl, null)
         shader
 
-    //FIXME: improve security
     @throws[IllegalArgumentException]
     def apply(paths: String*)(using gl: GL4): Shader=
         val vertPaths : Seq[String] = paths
