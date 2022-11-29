@@ -4,9 +4,7 @@ import se.lth.cs.student.battle3d.main.Battle3D
 
 import se.lth.cs.student.battle3d.io.Logger
 
-import com.jogamp.opengl.GLDebugListener
-import com.jogamp.opengl.GLDebugMessage
-import com.jogamp.opengl.GL2ES2
+import com.jogamp.opengl.{GL2ES2, GLDebugListener, GLDebugMessage}
 
 
 final class MyDebugListener extends GLDebugListener:

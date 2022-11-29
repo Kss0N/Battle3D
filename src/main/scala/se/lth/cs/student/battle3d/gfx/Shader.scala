@@ -1,30 +1,19 @@
 package se.lth.cs.student.battle3d.gfx
 
-import java.io.FileInputStream
-import java.io.BufferedInputStream
-import java.io.StringReader
+import java.io.{FileInputStream, BufferedInputStream, StringReader}
 
-import com.jogamp.opengl.GL
-import com.jogamp.opengl.GLES1
-import com.jogamp.opengl.GLES2
-import com.jogamp.opengl.GLES3
-import com.jogamp.opengl.GL2
-import com.jogamp.opengl.GL2ES1  
-import com.jogamp.opengl.GL2ES2
-import com.jogamp.opengl.GL2ES3
-import com.jogamp.opengl.GL3
-import com.jogamp.opengl.GL3ES3
-import com.jogamp.opengl.GL2GL3
-import com.jogamp.opengl.GL4
+import com.jogamp.opengl.{GL2ES2, GL4}
 
-import com.jogamp.opengl.util.glsl.ShaderCode
-import com.jogamp.opengl.util.glsl.ShaderProgram
-import com.jogamp.opengl.util.glsl.ShaderState
-import com.jogamp.opengl.util.glsl.ShaderUtil
-import com.jogamp.opengl.util.glsl.fixedfunc.FixedFuncUtil
-import com.jogamp.opengl.util.glsl.fixedfunc.ShaderSelectionMode
-import com.jogamp.opengl.util.glsl.sdk.CompileShader
-import com.jogamp.opengl.util.glsl.sdk.CompileShaderNVidia
+import com.jogamp.opengl.util.glsl.{
+    ShaderCode,
+    ShaderProgram,
+    ShaderState,
+    ShaderUtil,
+}
+import com.jogamp.opengl.util.glsl.fixedfunc.{FixedFuncUtil, ShaderSelectionMode}
+import com.jogamp.opengl.util.glsl.sdk.{CompileShader, CompileShaderNVidia}
+
+
 
 final case class Shader private (val program: Int)(using gl: GL4):
     def destroy(): Unit = 

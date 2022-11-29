@@ -1,14 +1,16 @@
 
 package se.lth.cs.student.battle3d.io
 
-
-import java.io.FileOutputStream
-import java.io.BufferedWriter
-import java.io.OutputStreamWriter
-import java.io.IOException
-
-import java.util.Date
-import java.util.Calendar
+import java.io.{
+    FileOutputStream, 
+    BufferedWriter, 
+    OutputStreamWriter, 
+    IOException
+}
+import java.util.{
+    Date,
+    Calendar
+}
 
 object Logger:
 

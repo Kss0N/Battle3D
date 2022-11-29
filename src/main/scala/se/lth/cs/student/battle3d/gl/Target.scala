@@ -1,10 +1,11 @@
 package se.lth.cs.student.battle3d.gl
 
-
-import com.jogamp.opengl.GL
-import com.jogamp.opengl.GL4
-import com.jogamp.opengl.GL2ES3
-import com.jogamp.opengl.GL3ES3
+import com.jogamp.opengl.{
+    GL,
+    GL2ES3,
+    GL3ES3,
+    GL4
+}
 
 
 

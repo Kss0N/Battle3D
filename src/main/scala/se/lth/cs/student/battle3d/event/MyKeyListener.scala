@@ -1,8 +1,7 @@
 package se.lth.cs.student.battle3d.event
 
 
-import com.jogamp.newt.event.KeyEvent
-import com.jogamp.newt.event.KeyListener
+import com.jogamp.newt.event.{KeyEvent, KeyListener}
 
 final class MyKeyListener extends KeyListener:
 

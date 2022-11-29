@@ -1,7 +1,6 @@
 package se.lth.cs.student.battle3d.gfx
 
-import com.jogamp.opengl.GL4
-import com.jogamp.opengl.GL
+import com.jogamp.opengl.{GL,GL4}
 
 import se.lth.cs.student.battle3d.gl.AttribType
 
@@ -35,8 +34,6 @@ object VertexArrays:
 
 
 object VertexArray:
-    
-
 
     def apply()(using gl: GL4): VertexArray =
         VertexArrays(1)(0)

@@ -1,7 +1,6 @@
 package se.lth.cs.student.battle3d.event
 
-import com.jogamp.newt.event.MouseListener
-import com.jogamp.newt.event.MouseEvent
+import com.jogamp.newt.event.{MouseEvent, MouseListener}
 
 final class MyMouseListener extends MouseListener:
     override def mouseClicked(e: MouseEvent): Unit = ()

@@ -2,18 +2,12 @@ package se.lth.cs.student.battle3d.event
 
 import com.jogamp.newt.opengl.GLWindow
 
-
-import com.jogamp.opengl.GLCapabilities
-import com.jogamp.opengl.GLContext
-import com.jogamp.opengl.GLProfile
-
-import com.jogamp.opengl.util.Animator
+import com.jogamp.opengl.{GLCapabilities, GLContext,GLProfile}
 
 import se.lth.cs.student.battle3d.gfx.Renderer
 
 object MainWindow:
     private var window: GLWindow = null 
-    private var animator: Animator = null
     private var isDebug: Boolean = false
 
     def isFullScreen : Boolean = window.isFullscreen()

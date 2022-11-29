@@ -1,8 +1,7 @@
 package se.lth.cs.student.battle3d.gfx
 
 
-import com.jogamp.opengl.GL
-import com.jogamp.opengl.GL4
+import com.jogamp.opengl.{GL, GL4}
 
 import se.lth.cs.student.battle3d.gl.Target
 

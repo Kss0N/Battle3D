@@ -1,34 +1,55 @@
 package se.lth.cs.student.battle3d.gfx
 
-import com.jogamp.opengl.DebugGL4
-import com.jogamp.opengl.FBObject
-import com.jogamp.opengl.DefaultGLCapabilitiesChooser
-import com.jogamp.opengl.DebugGL2
-import com.jogamp.opengl.DebugGL3
-import com.jogamp.opengl.DebugGL4
-import com.jogamp.opengl.GL
-import com.jogamp.opengl.GL2
-import com.jogamp.opengl.GL3
-import com.jogamp.opengl.GL4
-import com.jogamp.opengl.GLAutoDrawable
-import com.jogamp.opengl.GLContext
-import com.jogamp.opengl.GLCapabilities
-import com.jogamp.opengl.GLDrawable
-import com.jogamp.opengl.GLEventListener
-import com.jogamp.opengl.GLPipelineFactory
-import com.jogamp.opengl.GLProfile
-
-import com.jogamp.opengl.util.Animator
-import com.jogamp.opengl.util.GLBuffers
-
-import com.jogamp.newt.opengl.GLWindow
-
 import se.lth.cs.student.battle3d.io.Logger
 
 import se.lth.cs.student.battle3d.main.Battle3D
 
-import se.lth.cs.student.battle3d.event.MainWindow
-import se.lth.cs.student.battle3d.event.MyDebugListener
+import se.lth.cs.student.battle3d.event.{MainWindow,MyDebugListener}
+
+import com.jogamp.opengl.{
+    DebugGL2,
+    DebugGL3,
+    DebugGL4,
+    DefaultGLCapabilitiesChooser,
+    FBObject,
+    FPSCounter,
+    GL,
+    GL2,
+    GL2ES1,
+    GL2ES2,
+    GL2GL3,
+    GL3,
+    GL3ES3,
+    GL4,
+    GLAnimatorControl,
+    GLArrayData,
+    GLAutoDrawable,
+    GLAutoDrawableDelegate,
+    GLBase,
+    GLBufferStorage,
+    GLCapabilities,
+    GLCapabilitiesChooser,
+    GLCapabilitiesImmutable,
+    GLContext,
+    GLDrawable,
+    GLDrawableFactory,
+    GLES1,
+    GLES2,
+    GLES3,
+    GLEventListener,
+    GLEventListenerState,
+    GLException,
+    GLExtensions,
+    GLFBODrawable,
+
+    GLOffscreenAutoDrawable,
+
+    GLProfile,
+}
+import com.jogamp.newt.opengl.GLWindow
+import com.jogamp.opengl.util.GLArrayDataClient
+import com.jogamp.opengl.util.GLArrayDataServer
+import com.jogamp.opengl.util.GLBuffers
 
 
 final class Renderer(val isDebug: Boolean = false) extends GLEventListener:

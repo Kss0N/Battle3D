@@ -1,7 +1,6 @@
 package se.lth.cs.student.battle3d.event
 
-import com.jogamp.newt.event.GestureHandler
-import com.jogamp.newt.event.InputEvent
+import com.jogamp.newt.event.{GestureHandler, InputEvent}
 
 final class MyGestureHandler extends GestureHandler:
     override def clear(clearStarted: Boolean): Unit = ()
