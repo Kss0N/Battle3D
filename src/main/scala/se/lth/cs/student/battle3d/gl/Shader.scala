@@ -1,4 +1,4 @@
-package se.lth.cs.student.battle3d.gfx
+package se.lth.cs.student.battle3d.gl
 
 import se.lth.cs.student.battle3d.io.Logger
 
@@ -28,6 +28,8 @@ final case class Shader private (val program: Int)(using gl: GL4):
     //
     //    gl.glGetInteger64v(GL3ES3.GL_CURRENT_PROGRAM)
     //    false
+    override def finalize(): Unit = 
+        this.destroy()
         
 
 

@@ -1,4 +1,4 @@
-package se.lth.cs.student.battle3d.gfx
+package se.lth.cs.student.battle3d.gl
 
 import com.jogamp.opengl.GL4
 import se.lth.cs.student.battle3d.gl.Target

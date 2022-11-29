@@ -4,6 +4,8 @@ import se.lth.cs.student.battle3d.io.Logger
 
 import se.lth.cs.student.battle3d.main.Battle3D
 
+import se.lth.cs.student.battle3d.gl.Shader
+
 import se.lth.cs.student.battle3d.event.{MainWindow,MyDebugListener}
 
 import com.jogamp.opengl.{
