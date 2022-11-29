@@ -11,7 +11,7 @@ final case class VertexBuffer(val vbo: Int)(using gl: GL4) extends GLBuffer(vbo)
     override val target = Target.ARRAY_BUFFER
     
 
-object VertexBufers
+object VertexBuffers
 
 object VertexBuffer
 
