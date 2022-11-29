@@ -78,6 +78,9 @@ final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
     //Procedure called every time we render something
     override def display(drawable: GLAutoDrawable): Unit = 
         given gl: GL = getGL(drawable).asInstanceOf[GL4]
+        /**
+          * For each 
+          */
 
     //Called at shutdown
     override def dispose(drawable: GLAutoDrawable): Unit =
@@ -92,6 +95,13 @@ final class Renderer(val isDebug: Boolean = false) extends GLEventListener:
         val (width,height) = MainWindow.dim
 
         gl.glViewport(0,0,width,height)
+        gl.glEnable(GL.GL_DEPTH_TEST)
+        gl.glEnable(GL.GL_CULL_FACE)
+
+        gl.glCullFace(GL.GL_FRONT)
+        gl.glFrontFace(GL.GL_CCW)
+        
+
     
     //When resized or moved
     override def reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int): Unit = 
