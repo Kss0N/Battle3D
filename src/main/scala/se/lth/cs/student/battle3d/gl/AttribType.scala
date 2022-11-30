@@ -3,7 +3,7 @@ package se.lth.cs.student.battle3d.gl
 
 import com.jogamp.opengl.GL
 
-/** Attribute Type
+/** Attribute Type, typically used with `VertexArray.setVertexAttribFormat`
 * @param val OpenGL value
 */
 enum AttribType private (`val` : Int) extends GLval(`val`):
