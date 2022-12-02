@@ -3,7 +3,7 @@ package se.lth.cs.student.battle3d.gfx
 import se.lth.cs.student.battle3d.gl.AttribType
 import se.lth.cs.student.battle3d.gl.Topology
 
-import java.nio.Buffer
+import java.nio.ByteBuffer
 
 
 /** Describes a buffer where data used by the renderer is stored
@@ -22,7 +22,7 @@ import java.nio.Buffer
   */
   final case class Accessor(
     val name        : String, 
-    val buffer      : Buffer, 
+    val buffer      : ByteBuffer, 
     val offset      : Long, 
     val size        : Long,
     val stride      : Int, 
