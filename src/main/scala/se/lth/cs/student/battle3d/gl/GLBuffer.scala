@@ -6,8 +6,6 @@ import se.lth.cs.student.battle3d.gl.{Usage, Target, GLval, AttribType}
 import com.jogamp.opengl.{GL, GL4}
 
 import java.nio.Buffer
-import java.nio.IntBuffer
-import java.text.Normalizer.Form
 import java.nio.ByteBuffer
 
 /**Parent class of all OpenGL Buffer Object Wrapper types.
