@@ -2,27 +2,26 @@ package se.lth.cs.student.battle3d.gl
 
 import se.lth.cs.student.battle3d.io.Logger
 
-import java.io.{FileInputStream, BufferedInputStream, StringReader}
-
-import com.jogamp.opengl.{GL2ES2, GL4}
-
-import com.jogamp.opengl.util.glsl.{
-    ShaderCode,
-    ShaderProgram,
-    ShaderState,
-    ShaderUtil,
+import java.io.{
+    FileInputStream, 
+    BufferedInputStream, 
+    StringReader,
+    IOException
 }
-import com.jogamp.opengl.util.glsl.fixedfunc.{FixedFuncUtil, ShaderSelectionMode}
-import com.jogamp.opengl.util.glsl.sdk.{CompileShader, CompileShaderNVidia}
-import java.io.IOException
+import java.nio.{
+    IntBuffer
+}
+
+import org.lwjgl.opengl.GL20 as GL
+import se.lth.cs.student.battle3d.io.Logger
 
 
 
-final case class Shader private (val program: Int)(using gl: GL4):
+final case class Shader private (val program: Int):
     def destroy(): Unit = 
-        gl.glDeleteProgram(program)
+        GL.glDeleteProgram(program)
     def activate(): Unit = 
-        gl.glUseProgram(program)
+        GL.glUseProgram(program)
     //TODO: Implement
     //def isActive : Boolean =
     //
@@ -34,9 +33,8 @@ final case class Shader private (val program: Int)(using gl: GL4):
 
 
 object Shader:
-    //Will be set in the Renderer.init()
 
-    private def makeShader(`type`: Int, paths: Seq[String])(using gl: GL4): ShaderCode = 
+    private def makeShader(`type`: Int, paths: Seq[String]): Int = 
         val content : Seq[CharSequence] = paths.map{ path => 
             var bufferedInputStream: BufferedInputStream = null
             try
@@ -50,12 +48,20 @@ object Shader:
             finally
                 bufferedInputStream.close()
         }
-        val shader = ShaderCode(`type`, content.length, Array(content.toArray))
-        shader.compile(gl, null)
+        val shader = GL.glCreateShader(`type`)
+        GL.glShaderSource(shader, content:_*)
+        GL.glCompileShader(shader)
+
+        var compileParams = Array.fill[Int](1)(0)
+        GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS, IntBuffer.wrap(compileParams)); 
+        //0 is GL_FALSE meaning the compilation failed
+        if compileParams(0) == 0 then
+            val msg = GL.glGetShaderInfoLog(shader, 1024)
+            Logger.printFatal(msg)
         shader
 
     @throws[IllegalArgumentException]
-    def apply(paths: String*)(using gl: GL4): Shader=
+    def apply(paths: String*): Shader=
         val vertPaths : Seq[String] = paths
             .filter(_ contains ".vert")
         val fragPaths : Seq[String] = paths
@@ -66,17 +72,31 @@ object Shader:
         if vertPaths.length == 0 || fragPaths.length == 0 then
             throw new IllegalArgumentException("To create a shader, there needs to be at least one vertex shader source and one fragment shader source")
         
-        val vertShader = makeShader(GL2ES2.GL_VERTEX_SHADER, vertPaths)
-        val fragShader = makeShader(GL2ES2.GL_FRAGMENT_SHADER, fragPaths)
+        val vertShader = makeShader(GL.GL_VERTEX_SHADER, vertPaths)
+        val fragShader = makeShader(GL.GL_FRAGMENT_SHADER, fragPaths)
+        val geometryShader: Option[Int] = None
         
-        val program = ShaderProgram()
-        program.add(vertShader)
-        program.add(fragShader)
-        program.link(gl, null)
-        vertShader.destroy(gl)
-        vertShader.destroy(gl)
+        val program = GL.glCreateProgram()
+        GL.glAttachShader(program, vertShader)
+        GL.glAttachShader(program, fragShader)
         
-        Shader(program.id())
+        if geometryShader != None then 
+            GL.glAttachShader(program, geometryShader.get)
+
+        
+
+        GL.glLinkProgram(program)
+        var linkParams = Array.fill[Int](1)(0)
+        GL.glGetProgramiv(program, GL.GL_LINK_STATUS, IntBuffer.wrap(linkParams)); 
+        //0 is GL_FALSE meaning the compilation failed
+        if linkParams(0) == 0 then
+            val msg = GL.glGetProgramInfoLog(program, 1024)
+            Logger.printFatal(msg)
+        
+        GL.glDeleteShader(vertShader)
+        GL.glDeleteShader(fragShader)
+
+        new Shader(program)
 
 
 

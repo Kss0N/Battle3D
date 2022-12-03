@@ -1,8 +1,7 @@
 package se.lth.cs.student.battle3d.gl
 
-import com.jogamp.opengl.GL
-import scala.util.Failure
-import scala.util.Success
+import org.lwjgl.opengl.GL11 as GL
+import scala.util.{Failure, Success}
 
 enum Topology(override val `val`:Int) extends GLval(`val`):
     case POINTS         extends Topology(GL.GL_POINTS)
