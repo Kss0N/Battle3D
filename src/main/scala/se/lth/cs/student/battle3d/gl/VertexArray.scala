@@ -37,8 +37,7 @@ final case class VertexArray(val vao: Int):
     def disableAttribute(attribIndex: Int): Unit =
         GL.glDisableVertexArrayAttrib(vao, attribIndex)
 
-    def setVertexAttribFormat
-    (attribIndex: Int, size: Int, `type`: AttribType = AttribType.FLOAT, normalized: Boolean = false, relativeoffset: Int = 0): Unit = 
+    def setVertexAttribFormat(attribIndex: Int, size: Int, `type`: AttribType = AttribType.FLOAT, normalized: Boolean = false, relativeoffset: Int = 0): Unit = 
         GL.glVertexArrayAttribFormat(vao, attribIndex, size, `type`.get, normalized, relativeoffset)
 
     def setVertexAttribBinding(attribIndex: Int, bindingIndex: Int): Unit = 

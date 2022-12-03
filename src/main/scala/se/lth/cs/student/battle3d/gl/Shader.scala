@@ -74,6 +74,7 @@ object Shader:
         
         val vertShader = makeShader(GL.GL_VERTEX_SHADER, vertPaths)
         val fragShader = makeShader(GL.GL_FRAGMENT_SHADER, fragPaths)
+        //TODO: All the other Shader types
         val geometryShader: Option[Int] = None
         
         val program = GL.glCreateProgram()
@@ -83,18 +84,19 @@ object Shader:
         if geometryShader != None then 
             GL.glAttachShader(program, geometryShader.get)
 
-        
-
         GL.glLinkProgram(program)
+
         var linkParams = Array.fill[Int](1)(0)
         GL.glGetProgramiv(program, GL.GL_LINK_STATUS, IntBuffer.wrap(linkParams)); 
-        //0 is GL_FALSE meaning the compilation failed
-        if linkParams(0) == 0 then
+        if linkParams(0) == 0 then //0 is GL_FALSE meaning the compilation failed
             val msg = GL.glGetProgramInfoLog(program, 1024)
             Logger.printFatal(msg)
         
         GL.glDeleteShader(vertShader)
         GL.glDeleteShader(fragShader)
+
+        if geometryShader != None then 
+            GL.glDeleteShader(geometryShader.get)
 
         new Shader(program)
 
