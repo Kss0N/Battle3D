@@ -7,7 +7,7 @@ import java.io.{IOException,FileInputStream,BufferedInputStream}
 import java.nio.ByteBuffer
 
 import se.lth.cs.student.battle3d.gl.{AttribType, Topology}
-
+import se.lth.cs.student.battle3d.gfx.Renderer
 import se.lth.cs.student.battle3d.rsc.{
     Accessor => AttribAccessor,
     Mesh, 
@@ -180,6 +180,9 @@ object GLTF:
                 case Success(value) => value.toVector
                 case Failure(_)     => Vector.empty[Node]
 
+        def meshName: String = 
+            base.getJSONObject("mesh").optString("name", "")
+
         //Returns the Node's  GLTF Mesh primitives (getting translated to Battle3D meshes) (if any),  
         def meshes: Vector[Mesh] = 
             val obj = getGLTFObject("mesh").get
@@ -302,12 +305,17 @@ object GLTF:
         val matrix =
             parentMatrix.getOrElse(new Mat4)//unit matrix
             .mult(node.matrix)
-        val mesh = node.meshes
-        if !mesh.isEmpty then 
-            myScene.models += new Model(matrix, null)
-        
-        
-        
+
+        val meshes = node.meshes
+        if !meshes.isEmpty then 
+            val name = 
+                val myName = node.meshName
+                if(myName == "" || Renderer.sceneGraphContains(myName)) then 
+                    Renderer.generateUID(if myName == "" then "model" else myName)
+                else myName
+            myScene.models += new Model(name, matrix, meshes)
+
+        node.children.foreach{parseNode(_, Some(matrix), gltfScene, myScene)}
     end parseNode
 
 
