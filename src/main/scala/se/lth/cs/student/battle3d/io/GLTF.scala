@@ -6,17 +6,14 @@ import java.io.{IOException,FileInputStream,BufferedInputStream}
 
 import java.nio.ByteBuffer
 
-import se.lth.cs.student.battle3d.gl.Topology
-
-import se.lth.cs.student.battle3d.gfx
+import se.lth.cs.student.battle3d.gl.{AttribType, Topology}
 
 import se.lth.cs.student.battle3d.rsc.{
-    Accessor => VertexAccessor,
+    Accessor => AttribAccessor,
     Mesh, 
     Model, 
     Scene
 }
-import se.lth.cs.student.battle3d.gl.AttribType
 
 import scala.util.{Try, Success, Failure}
 
@@ -33,6 +30,7 @@ object GLTF:
     
 
     private abstract class GLTFbase protected(protected val base: JSONObject)(using gltf: JSONObject):
+        
         protected def getGLTFObject(`type`: String): Option[JSONObject] = 
             Try {gltf.getJSONArray(
                 `type` match
@@ -47,7 +45,7 @@ object GLTF:
             Try {
                 gltf.getJSONArray(`type`match 
                     case "mesh" => "meshes"
-                    case _      => "s").getJSONObject(from.getInt(name))
+                    case _      => `type`+"s").getJSONObject(from.getInt(name))
             } match
                 case Success(value) => Some(value)
                 case Failure(_)     => None
@@ -152,7 +150,7 @@ object GLTF:
                 (0 until base.getJSONArray(name).length())
                 .map{ix => base.getJSONArray(name).getFloat(ix)}
                 .toArray
-                
+ 
             Try{getFloatArray("matrix")} match
                 case Success(value) => Mat4(value)
                 case Failure(_) =>
@@ -199,15 +197,13 @@ object GLTF:
             .map{ix => primitives.getJSONObject(ix)}
             .map{primitive => 
 
-                def parseAccessor(a: GLTF.Accessor, name: String, mode: Topology): GFXaccessor =
-                    
-                    //NOTE: It is not an error if bufferView doesn't exist, it just means that the accessor is a sparse accessor
-                    //The sparse accessor should then be translated into a regular accessor if possible
+                def parseAccessor(a: GLTF.Accessor, name: String, mode: Topology): AttribAccessor =
                     val bufferView =Try{a.bufferView.get} match
+                        //NOTE: It is not an error if bufferView doesn't exist, it just means that the accessor is a sparse accessor
+                        //The sparse accessor should then be translated into a regular accessor if possible
                         case Success(value) => value
                         case Failure(exception) => ??? //TODO: implement sparse accessors
                     val buffer = bufferView.buffer
-                    
                     //FIXME: It is not an error per standard if buffer uri does not exist, though that means something else which I haven't figured out yet.
                     val data = 
                         if buffer.isInlineData then 
@@ -240,8 +236,7 @@ object GLTF:
                                 case "MAT3"         => 9
                                 case "MAT4"         => 16   
                             componentSize * typeSize                   
-
-                    new GFXaccessor(
+                    new AttribAccessor(
                         name        = name, 
                         buffer      = data, 
                         offset      = a.byteOffset, 
@@ -268,18 +263,21 @@ object GLTF:
                     case Success(value) => value
                     case Failure(_)     => Topology.TRIANGLES
                 //For each GLTF accessor, the buffer, the size, the offset, the stride and so on needs to be retrieved.
-                val vertexAccessors = collection.mutable.ArrayBuffer.empty[gfx.Accessor]
+                val vertexAccessors = collection.mutable.ArrayBuffer.empty[AttribAccessor]
+                
                 vertexAccessors += (parseAccessor(positionsAccessor, "positions", mode))
                 if normalsAccessor != None then 
                     vertexAccessors += (parseAccessor(new GLTF.Accessor(normalsAccessor.get), "normals", mode))
                 if texturesAccessor != None then
                     vertexAccessors += (parseAccessor(new GLTF.Accessor(texturesAccessor.get), "textures", mode))
-
+                
                 Mesh(
-                    vertexAccessors.toSeq, 
-                    Try{indicesAccessor.get} match
-                        case Failure(_)     => None
-                        case Success(value) => Some(parseAccessor(new GLTF.Accessor(value), "indices", mode))
+                vertexAccessors.toSeq, 
+                indicesAccessor match
+                    case None => None
+                    case Some(accessor) => Some(parseAccessor(new GLTF.Accessor(accessor), "indices", mode)),
+                //TODO: Add materials
+                None
                 )
             }
 
