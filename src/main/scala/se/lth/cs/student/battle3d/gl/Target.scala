@@ -1,17 +1,5 @@
 package se.lth.cs.student.battle3d.gl
 
-import org.lwjgl.opengl.{
-    GL,
-    GL11,
-    GL13,
-    GL15,
-    GL20,
-    GL21,
-    GL2ES3,
-    GL3ES3,
-    GL4
-}
-
 
 /** GL Buffer bind Target wrapper enum */
 enum Target private(`val`: Int) extends GLval(`val`):
