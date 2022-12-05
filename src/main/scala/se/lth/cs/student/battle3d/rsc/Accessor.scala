@@ -20,7 +20,7 @@ import java.nio.ByteBuffer
   * @param mode         (In case of vertices) mode of drawing
   * @param normalized   if data will be normalized, default: no
   */
-  final case class Accessor(
+final case class Accessor(
     val name        : String, 
     val buffer      : ByteBuffer, 
     val offset      : Long, 
