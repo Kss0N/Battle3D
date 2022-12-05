@@ -8,4 +8,4 @@ import jglm.Mat4
   * @param matrix
   * @param meshes
   */
-final class Model(val name: String, val matrix: Mat4 = Mat4(), val meshes: Seq[Mesh])
+final case class Model(val name: String, val matrix: Mat4 = Mat4(), val meshes: Seq[Mesh])
