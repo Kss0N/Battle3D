@@ -2,13 +2,17 @@ package se.lth.cs.student.battle3d.gl
 
 import se.lth.cs.student.battle3d.gl.{Usage, Target, GLval, AttribType}
 
+//Some bindings don't carry to the latest
+import org.lwjgl.opengl.{
+  GL45 as GL,
+  GL15,
+  GL43}
 
-import com.jogamp.opengl.{GL, GL4}
+import org.lwjgl.system.MemoryUtil
 
 import java.nio.Buffer
-import java.nio.IntBuffer
-import java.text.Normalizer.Form
 import java.nio.ByteBuffer
+import java.nio.IntBuffer
 
 /**Parent class of all OpenGL Buffer Object Wrapper types.
   * 
@@ -21,8 +25,14 @@ import java.nio.ByteBuffer
   * @constructor     creates a GLBuffer object from an OpenGL object reference
   * @param obj       OpenGL object reference being wrapped
   */
-abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
+abstract class GLBuffer protected(val obj: Int):
+    //NOTES:
+    //LWJGL is as the name implies Light weight; so light weight that all gl*buffer* procedures require the pointer to 
+    //the memadress we want to use.
+    //for all data fields, the memAdress has to be retrieved
     import GLBuffer.*
+    private def ptr(buffer: ByteBuffer): Long =
+      MemoryUtil.memAddress(buffer)
 
     /** used when binding is necessary */
     val target: Target 
@@ -37,8 +47,8 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param data  to be buffered
       * @param usage hint to the driver on how the buffer is supposed be used in order to optimize performance
       */
-    def bufferData(size: Long, data: Buffer, usage: Usage = Usage(Usage.STATIC, Usage.DRAW)): Unit =
-        gl.glNamedBufferData(this.obj, size, data, usage.`val`)
+    def bufferData(size: Long, data: ByteBuffer, usage: Usage = Usage(Usage.STATIC, Usage.DRAW)): Unit =
+        GL.nglNamedBufferData(this.obj, size, MemoryUtil.memAddress(data), usage.`val`)
 
     /** Buffers part of data from application to OpenGL driver
       * After call, the driver decdes where the data is located, it can either be in RAM or GPU memory  
@@ -51,8 +61,8 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param size   of the block to transfer
       * @param data   to be transfered to
       */
-    def bufferSubData(offset: Long, size:Long, data:Buffer): Unit =
-        gl.glNamedBufferSubData(this.obj, offset, size, data)   
+    def bufferSubData(offset: Long, size:Long, data:ByteBuffer): Unit =
+        GL.nglNamedBufferSubData(this.obj, offset, size, MemoryUtil.memAddress(data))   
 
     /** creates and initializes a buffer object's immutable data store 
       * 
@@ -64,16 +74,16 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param data  to store
       * @param flags the intended usage of the buffer's data store.
       */
-    def bufferStorage(size: Long, data: Buffer, flags: Int): Unit =
-        gl.glNamedBufferStorage(obj, size, data, flags)
+    def bufferStorage(size: Long, data: ByteBuffer, flags: Int): Unit =
+        GL.nglNamedBufferStorage(obj, size, ptr(data), flags)
 
     /** Binds buffer to target buffer point */
     def bind(): Unit =
-        gl.glBindBuffer(target.get, obj)
+        GL15.glBindBuffer(target.get, obj)
 
     /** Binds buffer target point to 0, effectively not binding target to anything*/
     def unbind(): Unit =
-        gl.glBindBuffer(target.get, 0)
+        GL15.glBindBuffer(target.get, 0)
 
     /** copy all or part of the data store of a buffer object to the data store of another buffer object
       * 
@@ -87,7 +97,7 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param size         Of block to be copied
       */
     def copyBufferSubData(writeBuffer: GLBuffer, readOffset: Int, writeOffset: Int, size: Long): Unit =
-        gl.glCopyNamedBufferSubData(obj, writeBuffer.obj, readOffset, writeOffset, size)
+        GL.glCopyNamedBufferSubData(obj, writeBuffer.obj, readOffset, writeOffset, size)
 
     /** fill a buffer object's data store with a fixed value
       * 
@@ -99,14 +109,15 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param type
       * @param data
       */
-    def clearBufferData(internalFormat: Format, format: Format, `type`: AttribType, data: Buffer): Unit =
-        gl.glClearNamedBufferData(obj, internalFormat.get, format.get, `type`.get, data)
+    def clearBufferData(internalFormat: Format, format: Format, `type`: AttribType, data: ByteBuffer): Unit =
+        GL.nglClearNamedBufferData(obj, internalFormat.get, format.get, `type`.get, ptr(data))
 
     /**fill all or part of buffer object's data store with a fixed value
       * 
       * https://registry.khronos.org/OpenGL-Refpages/gl4/html/glClearBufferData.xhtml
       *
       * TODO: Document
+      * FIXME: Formats
       * @param internalFormat   
       * @param offset
       * @param size
@@ -114,8 +125,8 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param type
       * @param data
       */
-    def clearBufferSubData(internalFormat: Format, offset: Long, size: Long, format: Format, `type`: AttribType, data: Buffer): Unit =
-        gl.glClearNamedBufferSubData(obj, internalFormat.get, offset, size, format.get, `type`.get, data)
+    def clearBufferSubData(internalFormat: Format, offset: Long, size: Long, format: Format, `type`: AttribType, data: ByteBuffer): Unit =
+        GL.nglClearNamedBufferSubData(obj, internalFormat.get, offset, size, format.get, `type`.get, ptr(data))
 
     /** returns a subset of a buffer object's data store (into a buffer)
       * 
@@ -125,8 +136,8 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param size     in bytes of the data store region being returned.
       * @param data     the location where buffer object data is returned.
       */
-    def getBufferSubData(offset: Long, size: Long, data: Buffer): Unit =
-        gl.glGetNamedBufferSubData(obj, offset,size, data)
+    def getBufferSubData(offset: Long, size: Long, data: ByteBuffer): Unit =
+        GL.nglGetNamedBufferSubData(obj, offset,size, ptr(data))
 
     /** returns a subset of a buffer objects' data store (as return value)
       * 
@@ -138,14 +149,14 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       */
     def getBufferSubData(offset: Long, size: Long): Array[Byte]= 
         val buffer = ByteBuffer.wrap(Array.fill[Byte](size.toInt)(0))
-        gl.glGetNamedBufferSubData(obj, offset, size, buffer)
+        GL.nglGetNamedBufferSubData(obj, offset, size, ptr(buffer))
         buffer.array()
     
     /**
       * FIXME: 
       */
     def invalidateBufferData(): Unit =
-        gl.glInvalidateBufferData(obj)
+        GL43.glInvalidateBufferData(obj)
 
     /**
       * FIXME:
@@ -154,7 +165,7 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       * @param length
       */
     def invalidateBufferSubData(offset: Long, length: Long): Unit = 
-        gl.glInvalidateBufferSubData(obj, offset, length)
+        GL43.glInvalidateBufferSubData(obj, offset, length)
 
     /** deletes buffer
       * 
@@ -162,7 +173,7 @@ abstract class GLBuffer protected(val obj: Int)(using gl: GL4):
       */
     def delete(): Unit =
         val b = Array.fill[Int](1)(this.obj)
-        gl.glDeleteBuffers(1, b, 0)
+        GL15.glDeleteBuffers(IntBuffer.wrap(b))
     
     override def finalize(): Unit = this.delete()
 
@@ -171,4 +182,4 @@ object GLBuffer:
 
     //TODO: fix this
     enum Format private(`val`: Int) extends GLval(`val`):
-        case R8 extends Format(GL.GL_R8)
+        case R8 extends Format(0)

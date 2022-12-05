@@ -16,7 +16,7 @@ package se.lth.cs.student.battle3d.gl
  * #define GL_DYNAMIC_COPY 0x88EA
  * 
 */
-final case class Usage private(`val`: Int) extends GLval(`val`)
+final case class Usage private(override val `val`: Int) extends GLval(`val`)
 
 object Usage:
   val STREAM  = 0

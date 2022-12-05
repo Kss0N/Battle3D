@@ -1,9 +1,11 @@
 package se.lth.cs.student.battle3d.rsc
 
-import glm.mat._4.Mat4
+import jglm.Mat4
 
-
-final class Model:
-    var matrix : Mat4 = null
-    val texture: Texture = null
-    val mesh: Mesh = null
+/** Model class encapsulating the objects meshes, as well as it's matrix (storing position and rotation)
+  * 
+  *
+  * @param matrix
+  * @param meshes
+  */
+final case class Model(val name: String, val matrix: Mat4 = Mat4(), val meshes: Seq[Mesh])

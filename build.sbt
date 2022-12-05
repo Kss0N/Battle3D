@@ -30,9 +30,18 @@ resolvers += Resolver.mavenLocal
 
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.1"
-libraryDependencies += "org.jogamp.jogl" % "jogl-all-main" % "2.3.2"
-libraryDependencies += "org.jogamp.gluegen" % "gluegen-rt-main" % "2.3.2"
+
+//libraryDependencies += "org.jogamp.jogl" % "jogl-all-main" % "2.3.2"
+//libraryDependencies += "org.jogamp.gluegen" % "gluegen-rt-main" % "2.3.2"
+// https://mvnrepository.com/artifact/org.lwjgl/lwjgl
+libraryDependencies += "org.lwjgl" % "lwjgl" % "3.1.0"
+libraryDependencies += "org.lwjgl" % "lwjgl-opengl" % "3.1.0"
+libraryDependencies += "org.lwjgl" % "lwjgl-glfw" % "3.1.0"
+
+
+
 libraryDependencies += "io.github.java-graphics" % "glm" % "1.0.1"
+libraryDependencies += "org.json" % "json" % "20180813"
 
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the scala-parser-combinators dependency to the set of dependencies

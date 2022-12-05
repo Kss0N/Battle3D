@@ -1,18 +1,24 @@
 package se.lth.cs.student.battle3d.gl
 
 
-import com.jogamp.opengl.{GL, GL4}
+import org.lwjgl.opengl.GL45 as GL
 
 import se.lth.cs.student.battle3d.gl.Target
 
 import java.nio.Buffer
 
-final case class VertexBuffer(val vbo: Int)(using gl: GL4) extends GLBuffer(vbo):
+final case class VertexBuffer private(val vbo: Int) extends GLBuffer(vbo):
     override val target = Target.ARRAY_BUFFER
     
 
-object VertexBufers
+object VertexBuffers
 
-object VertexBuffer
+object VertexBuffer:
+
+    def apply(): VertexBuffer = 
+        val buffers = Array.fill[Int](1)(0)
+        GL.glCreateBuffers(buffers)
+        new VertexBuffer(buffers(0))
+        
 
 

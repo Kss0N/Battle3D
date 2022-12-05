@@ -1,39 +1,60 @@
 package se.lth.cs.student.battle3d.gl
 
-import com.jogamp.opengl.{GL,GL4}
+import org.lwjgl.opengl.{
+    GL45 => GL,
+    GL15,
+    GL30,
+    GL40,
+    GL43,
+    ARBVertexArrayObject => VAO
+}
+
 
 import se.lth.cs.student.battle3d.gl.AttribType
 
-final case class VertexArray(val vao: Int)(using gl: GL4):
+import java.nio.IntBuffer
+
+/** OpenGL Vertex Array wrapper object
+  * 
+  * @constructor creates a VertexArray object from OpenGL Vertex Array Object Reference
+  * @param vao   object reference, the real object is stored on the openGL side of the interface
+  */
+final case class VertexArray(val vao: Int):
     import VertexArrays.* 
 
+    def bind(): Unit =
+        GL30.glBindVertexArray(vao) 
+
+    def unbind(): Unit =
+        GL30.glBindVertexArray(0)
+    
     def bindVertexBuffer(bindingIndex: Int, buffer: VertexBuffer, offset: Int, stride: Int): Unit = 
-        gl.glVertexArrayVertexBuffer(vao, bindingIndex, buffer.vbo, offset, stride)
+        GL.glVertexArrayVertexBuffer(vao, bindingIndex, buffer.vbo, offset, stride)
     
     def enableAttribute(attribIndex: Int): Unit = 
-        gl.glEnableVertexArrayAttrib(vao, attribIndex)
+        GL.glEnableVertexArrayAttrib(vao, attribIndex)
     
     def disableAttribute(attribIndex: Int): Unit =
-        gl.glDisableVertexArrayAttrib(vao, attribIndex)
+        GL.glDisableVertexArrayAttrib(vao, attribIndex)
 
-    def setVertexAttribFormat
-    (attribIndex: Int, size: Int, 
-    `type`: AttribType = AttribType.FLOAT, normalized: Boolean = false, relativeoffset: Int = 0): Unit = 
-        gl.glVertexArrayAttribFormat(vao, attribIndex, size, `type`.get, normalized, relativeoffset)
+    def setVertexAttribFormat(attribIndex: Int, size: Int, `type`: AttribType = AttribType.FLOAT, normalized: Boolean = false, relativeoffset: Int = 0): Unit = 
+        GL.glVertexArrayAttribFormat(vao, attribIndex, size, `type`.get, normalized, relativeoffset)
 
     def setVertexAttribBinding(attribIndex: Int, bindingIndex: Int): Unit = 
-        gl.glVertexArrayAttribBinding(vao, attribIndex, bindingIndex)
+        GL.glVertexArrayAttribBinding(vao, attribIndex, bindingIndex)
 
-
+    def delete(): Unit =
+        val vertexArrays = Array.fill[Int](1)(vao)
+        VAO.glDeleteVertexArrays(vertexArrays)
 
 object VertexArrays:
-    def apply(n : Int)(using gl: GL4): Seq[VertexArray] = 
+    def apply(n : Int): Seq[VertexArray] = 
         val vertexArraysBuffer = Array.fill[Int](n)(0)
-        gl.glCreateVertexArrays(n, vertexArraysBuffer, 0)
+        GL.glCreateVertexArrays(vertexArraysBuffer)
         vertexArraysBuffer.toSeq.map{vao => new VertexArray(vao)}
 
 
 object VertexArray:
 
-    def apply()(using gl: GL4): VertexArray =
+    def apply(): VertexArray =
         VertexArrays(1)(0)
