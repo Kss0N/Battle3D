@@ -24,37 +24,50 @@ import jglm.{
     Mat4, 
     Quat, 
     Vec3}
+import java.io.FileNotFoundException
 
 
+//Private so it's only visible in this package
+/**
+  * 
+  *
+  * @param a
+  * @param name     
+  * @param mode     (used for vertex accessors)
+  * @param buffers Since there's a high chance that multiple accessors reference the same buffer, it's a good idea to cache all buffers so in the (likely) event that accessors reference the same buffer, it saves time by bypassing multiple levels of OS-calls
+  * @return
+  */
+@throws[FileNotFoundException]
+@throws[NoSuchElementException]
 private def parseAccessor(
-        a:       Wrapper.Accessor, 
-        name:    String, 
-        mode:    Topology, 
-        buffers: collection.mutable.ArrayBuffer[(String, ByteBuffer)] = ArrayBuffer.empty
+        accessor:   Wrapper.Accessor, 
+        name:       String, 
+        mode:       Topology = Topology.TRIANGLES, 
+        buffers:    ArrayBuffer[(String, ByteBuffer)] = ArrayBuffer.empty
     ): Accessor =
 
-    val bufferView =Try{a.bufferView.get} match
+    val bufferView = Try{accessor.bufferView.get} match
         //NOTE: It is not an error if bufferView doesn't exist, it just means that the accessor is a sparse accessor
         //The sparse accessor should then be translated into a regular accessor if possible
-        case Success(value) => value
+        case Success(value)     => value
         case Failure(exception) => ??? //TODO: implement sparse accessors
     val buffer = bufferView.buffer
     //FIXME: It is not an error per standard if buffer uri does not exist, though that means something else which I haven't figured out yet.
     val data = 
         if buffer.isInlineData then 
             //FIXME: Do the `right` thing akchualliy
-            ByteBuffer.wrap(buffer.uri.get.drop("data:".length).map{_.toByte}.toArray) 
+            Try {buffer.uri.drop("data:".length).map{_.toByte}.toArray } match
+                case Failure(_)      => ByteBuffer.wrap(Array.empty)
+                case Success(value)  => ByteBuffer.wrap(value)
         else//It's in an other file
             //Check for the possibility that the buffer already is recorded
-            buffers.find((uri,buf)=> uri == buffer.uri.get) match
+            buffers.find((uri,buf)=> uri == buffer.uri) match
                 case None =>
-                    //should throw an IOException on failure
-                    var bufferedStream: BufferedInputStream = null
-                    val fileStream  = new FileInputStream(buffer.uri.get)
-                    bufferedStream  = new BufferedInputStream(fileStream)
+                    val fileStream  = new FileInputStream(buffer.uri)
+                    val bufferedStream  = new BufferedInputStream(fileStream)
                     val myBuffer    = ByteBuffer.wrap(bufferedStream.readAllBytes())
                     bufferedStream.close()
-                    buffers += ((buffer.uri.get, myBuffer))
+                    buffers += ((buffer.uri, myBuffer))
                     myBuffer
                 case Some((uri, buffer)) => buffer
     //in bytes
@@ -62,8 +75,8 @@ private def parseAccessor(
         case Some(value) => value
         case None        => 
             //It has to be calculated manually
-            val componentSize = AttribType.byteSize(AttribType.fromGL(a.componentType))
-            val typeSize = a.`type` match 
+            val componentSize = AttribType.byteSize(AttribType.fromGL(accessor.componentType))
+            val typeSize = accessor.`type` match 
                 case "SCALAR"       => 1
                 case "VEC2"         => 2
                 case "VEC3"         => 3
@@ -74,12 +87,12 @@ private def parseAccessor(
     new Accessor(
         name        = name, 
         buffer      = data, 
-        offset      = a.byteOffset, 
+        offset      = accessor.byteOffset, 
         size        = bufferView.byteLength, 
         stride      = stride,
-        `type`      = AttribType.fromGL(a.componentType),
+        `type`      = AttribType.fromGL(accessor.componentType),
         mode        = mode,
-        normalized  = a.normalized)
+        normalized  = accessor.normalized)
 end parseAccessor
 
 
@@ -123,8 +136,10 @@ private object Wrapper :
         @throws[NoSuchElementException]
         def componentType: Int = 
             try base.getInt("componentType") catch case _ => throw new NoSuchElementException("componentType is missing")
+        
         def normalized: Boolean =
             base.optBoolean("normalized", false)
+        
         @throws[NoSuchElementException]
         def `type`: String =
             try base.getString("type") catch case _ => throw new NoSuchElementException("type is missing")
@@ -134,6 +149,7 @@ private object Wrapper :
             .map{ ix=>base.getJSONArray("max").getInt(ix)}} match
                 case Failure(exception) => Vector.empty
                 case Success(value)     => value.toVector
+        
         def min: Vector[Int] =
             util.Try{(0 until base.getJSONArray("min").length())
             .map{ ix =>base.getJSONArray("min").getInt(ix)}} match
@@ -147,14 +163,14 @@ private object Wrapper :
         @throws[NoSuchElementException]
         def byteLength: Int = try base.getInt("byteLength") catch case _ => throw new NoSuchElementException("byteLength")
         
-        def uri: Option[String] = 
-            util.Try{base.getString("uri")} match
-                case Failure(exception) => None
-                case Success(value) => Some(value)
+        def uri: String = 
+            Try{base.getString("uri")} match
+                case Failure(exception) => ""
+                case Success(value)     => value
         
         def isInlineData: Boolean =
-            //If uri doesn't exist then the `false` is a given FIXME: make it totally inline with the standard
-            util.Try{this.uri.get.take(5) == "data"} match
+            //FIXME: make it totally inline with the standard
+            Try{uri.take(5) == "data"} match
                 case Failure(exception) => false
                 case Success(value) => value
     end Buffer
@@ -195,20 +211,28 @@ private object Wrapper :
                 (0 until base.getJSONArray(name).length())
                 .map{ix => base.getJSONArray(name).getFloat(ix)}
                 .toArray
-            
             Try{getFloatArray("matrix")} match
                 case Success(value) => Mat4(value)
                 case Failure(_) =>
                     val translation = Try{getFloatArray("translation")} match
                         case Failure(_)     => Vec3(0,0,0)
-                        case Success(value) => Vec3(value)
+                        case Success(values)=> Vec3((0 until 3).indices.map{ix=> Try{values(ix)} match
+                            case Failure(exception) => 0.0f
+                            case Success(value) => value
+                        }.toArray)
                     //luckily Both GLM and GLTF uses [I,J,K,S] notation for quaternions
                     val rotation    = Try{getFloatArray("rotation")} match
                         case Failure(_)     => Quat(0,0,0,1)
-                        case Success(arr)   => Quat(arr(0),arr(1),arr(2),arr(3))         
+                        case Success(arr)   => 
+                            if arr.length >= 4 then Quat(arr(0),arr(1),arr(2),arr(3))
+                            else ??? //TODO: Make Quaternions if array is corrupt
                     val scale       = Try{getFloatArray("scale")} match
-                        case Failure(_)     => Vec3(1,1,1)
-                        case Success(value) => Vec3(value)
+                        case Failure(_)         => Vec3(1,1,1)
+                        case Success(values)    => Vec3((0 until 3).indices.map{ix=> Try{values(ix)} match
+                            case Failure(exception) => 0.0f
+                            case Success(value) => value
+                        }.toArray)
+
                     Mat4.translate(translation)
                     .mult(rotation.toMatrix())
                     .mult{
@@ -240,8 +264,8 @@ private object Wrapper :
             //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-mesh-primitive
             (0 until primitives.length)
             .map{ix => primitives.getJSONObject(ix)}
-            .map{primitive => 
-                  
+            //Translate GLTF.Mesh.Primitive -> Battle3D.Mesh 
+            .map{primitive =>   
                 //If this fails, the entire operation fails
                 val attributesObject  = primitive.getJSONObject("attributes")
                 val positionsAccessor = new Accessor(getGLTFObject("accessor", "POSITION",   from = attributesObject).get) //warranted NoSuchElementException on failure
@@ -263,28 +287,28 @@ private object Wrapper :
                     vertexAccessors += (parseAccessor(new Wrapper.Accessor(normalsAccessor.get), "normals", mode))
                 if texturesAccessor != None then
                     vertexAccessors += (parseAccessor(new Wrapper.Accessor(texturesAccessor.get), "textures", mode))
+                
                 Mesh(
-                vertexAccessors.toSeq, 
-                indicesAccessor match
-                    case None => None
-                    case Some(accessor) => Some(parseAccessor(new Wrapper.Accessor(accessor), "indices", mode)),
-                //TODO: Add materials
-                None
+                    vertexAccessors.toSeq, 
+                    indicesAccessor match
+                        case None => None
+                        case Some(accessor) => Some(parseAccessor(new Wrapper.Accessor(accessor), "indices", mode)),
+                    //TODO: Add materials
+                    None
                 )
             }
             .toVector
-            //Vector.empty
     end Node
 
         //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-scene
     class Scene(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
-            def nodes: Vector[Node] = 
+            def nodes: Vector[Wrapper.Node] = 
                 (0 until base.getJSONArray("nodes").length())
                 .map{ix => base.getJSONArray("nodes").getInt(ix)}
                 .distinct
                 .map {ix => gltf.getJSONArray("nodes").getJSONObject(ix)}
                 .map{
-                    new Node(_)
+                    new Wrapper.Node(_)
                 }.toVector
     end Scene
     
@@ -297,7 +321,21 @@ private object Wrapper :
 
 object GLTF:
 
-    private def parseNode(node: Wrapper.Node, parentMatrix: Mat4, gltfScene: Wrapper.Scene, myScene: Scene)(using gltf: JSONObject): Unit =
+    /**
+      * 
+      *
+      * @param node
+      * @param parentMatrix
+      * @param gltfScene
+      * @param myScene
+      * @param gltf
+      */
+    private def parseNode(
+        node:           Wrapper.Node, 
+        parentMatrix:   Mat4, 
+        gltfScene:      Wrapper.Scene, 
+        myScene:        Scene)
+        (using gltf: JSONObject): Unit =
         
         val matrix = parentMatrix.mult(node.matrix)
         val meshes = node.meshes
@@ -308,9 +346,7 @@ object GLTF:
                     Renderer.generateUID(if myName == "" then "model" else myName)
                 else myName
             myScene.models += new Model(name, matrix, meshes)
-
         node.children.foreach{parseNode(_, matrix, gltfScene, myScene)}
-    end parseNode
     
 
 
@@ -329,13 +365,17 @@ object GLTF:
             val mesh        = json.getJSONArray("meshes").getJSONObject(0)
             val primitives  = mesh.getJSONArray("primitives")
 
-            Some(new Object)
+            (Some(scenes(0)), scenes.toVector)
         catch
-            case e: NoSuchElementException =>
-            case e: JSONException=>
-            case e: IOException=>
+            case e: NoSuchElementException  =>
+                Logger.printError("Encountered an element that does not exist in source file, parsing aborted")
+                (None,Vector.empty)
+            case e: JSONException           =>
+                Logger.printFatal("Unspecified error in GLTF parser:" + e.getMessage())
+                (None,Vector.empty)
+            case e: FileNotFoundException   =>
+                Logger.printWarn("File currently not found, parsing aborted:" + e.getMessage())
+                (None,Vector.empty)
                 
-            (None,Vector.empty)
-    
     def parse(data: String*): Object = ???
 
