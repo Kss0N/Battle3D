@@ -10,26 +10,41 @@ import se.lth.cs.student.battle3d.rsc.{
     Scene
 }
 import scala.collection.immutable.Stream.Empty
+import jglm.Mat4
+import se.lth.cs.student.battle3d.gl.{
+    ElementBuffer,
+    TextureBuffer,
+    VertexArray,
+    VertexBuffer,
+}
+
+
+
+private class MeshAggegate(
+    val vao: VertexArray,
+    val vbo: VertexBuffer, 
+    val ebo: Option[ElementBuffer], 
+    val tbo: Option[TextureBuffer])
+
+private class ModelAggregate(var matrix: Mat4, val meshes: Array[MeshAggegate])
+
+private class SceneAggegate
 
 object Renderer extends Singleton:
-    abstract class Message 
 
     /** Aggregates and Replaces scenegraph with the newest one*/
-    case class AggreggateScene(val scene: Scene) extends Message
+    case class AggreggateScene(val scene: Scene) extends Event.Message
 
     /** adds a new Model Aggegate to scene*/
-    case class AggregateAndAppendModel(val model: Model)
+    case class AggregateAndAppendModel(val model: Model) extends Event.Message
 
     /** aggregates and upgrades a Mesh to a Model (with Unit Matrix as orgin)*/
-    case class AggregateMeshAsModel(val mesh: Mesh)
+    case class AggregateMeshAsModel(val mesh: Mesh) extends Event.Message
 
     /** for a certain model in the scene (given just the internal index as reference) replace it's matrix with a new one*/
-    case class ReplaceMatrix(val model: Int)
+    case class ReplaceMatrix(val model: Int) extends Event.Message
 
-    val sceneref = scala.collection.mutable.Map.empty[String, Long]
-    private var scene = scala.collection.mutable.ArrayBuffer.empty[Byte]
-
-    def sceneGraphContains(name: String) = sceneref.contains(name)
+    var sceneGraph = collection.mutable.Map.empty[String, ModelAggregate]
 
     /**Generate unique identifier from name
       * 
@@ -38,7 +53,7 @@ object Renderer extends Singleton:
     def generateUID(name: String): String = 
         var myName: String = name
         var iteration = 0
-        while(sceneGraphContains(myName)) do
+        while sceneGraph.contains(myName) do
             myName = name + s"- $iteration"
         myName
 
@@ -47,24 +62,31 @@ object Renderer extends Singleton:
 
     override def destroy(): Unit = ???
 
-
-
     def loop: Unit =
         Display.associateThisThreadWithGL()
         while(Display.isRunning) do
-            Event.getQueue("Renderer")
-            .dequeueAll{e => true} //everyone
-            .foreach{ e =>
-                e match
-                    case AggreggateScene(scene)         =>
+            val queue = Event.getQueueNonBlocking("Renderer")
+            if queue != None then 
+                queue
+                .get
+                .dequeueAll{e => true} //everyone
+                .foreach{ e =>
+                    e match
+                        case AggreggateScene(scene)         =>
+                            sceneGraph.clear()
+                            
+                            scene.models.foreach{model =>
+                                sceneGraph(model.name) = ???
+                            }
 
-                    case AggregateAndAppendModel(model) =>
-                        
-                    case AggregateMeshAsModel(mesh)     =>
-                        
-                        
-                    case ReplaceMatrix(model)           => 
-            }
+                        case AggregateAndAppendModel(model) =>
+
+                        case AggregateMeshAsModel(mesh)     =>
+
+                        case ReplaceMatrix(model)           => 
+                }
             //Onto Rendering:
+            
+            
 
         

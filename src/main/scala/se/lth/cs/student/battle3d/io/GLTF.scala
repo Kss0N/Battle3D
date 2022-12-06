@@ -576,7 +576,7 @@ object GLTF:
     )(using gltf: JSONObject): Model =
         val name = 
             val myName = mesh.name
-            if(myName == "" || Renderer.sceneGraphContains(myName)) then 
+            if(myName == "" || Renderer.sceneGraph.contains(myName)) then 
                 Renderer.generateUID(if myName == "" then "model" else myName)
             else myName
         new Model(name, matrix, parseGLTFmesh(mesh))

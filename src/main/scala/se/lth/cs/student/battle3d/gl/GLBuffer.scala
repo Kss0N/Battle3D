@@ -25,7 +25,7 @@ import java.nio.IntBuffer
   * @constructor     creates a GLBuffer object from an OpenGL object reference
   * @param obj       OpenGL object reference being wrapped
   */
-abstract class GLBuffer protected(val obj: Int):
+abstract class GLBuffer protected(private val obj: Int):
     //NOTES:
     //LWJGL is as the name implies Light weight; so light weight that all gl*buffer* procedures require the pointer to 
     //the memadress we want to use.
