@@ -5,6 +5,7 @@ import java.io.{
     BufferedInputStream,
     FileInputStream,
     FileNotFoundException,
+    InputStream,
     IOException,
 }
 import java.lang.UnsupportedOperationException
@@ -30,82 +31,6 @@ import jglm.{
     Vec3,
     Vec4
 }
-
-
-
-//Private so it's only visible in this package
-/**
-  * 
-  *
-  * @param a
-  * @param name     
-  * @param mode     (used for vertex accessors)
-  * @param buffers Since there's a high chance that multiple accessors reference the same buffer, it's a good idea to cache all buffers so in the (likely) event that accessors reference the same buffer, it saves time by bypassing multiple levels of OS-calls
-  * @return
-  */
-@throws[FileNotFoundException]
-@throws[NoSuchElementException]
-private def parseAccessor(
-        accessor:   Wrapper.Accessor, 
-        name:       String, 
-        mode:       Topology                            = Topology.TRIANGLES, 
-        buffers:    ArrayBuffer[(String, ByteBuffer)]   = ArrayBuffer.empty
-    ): Accessor =
-
-    val bufferView = Try{accessor.bufferView.get} match
-        //NOTE: It is not an error if bufferView doesn't exist, it just means that the accessor is a sparse accessor
-        //The sparse accessor should then be translated into a regular accessor if possible
-        case Success(value)     => value
-        case Failure(exception) => ??? //TODO: implement sparse accessors
-    val buffer = bufferView.buffer
-    //FIXME: It is not an error per standard if buffer uri does not exist, though that means something else which I haven't figured out yet.
-    val data = 
-        if buffer.isInlineData then 
-            //FIXME: Do the `right` thing akchualliy
-            Try {buffer.uri.drop("data:".length).map{_.toByte}.toArray } match
-                case Failure(_)      => ByteBuffer.wrap(Array.empty)
-                case Success(value)  => ByteBuffer.wrap(value)
-        else//It's in an other file
-            //Check for the possibility that the buffer already is recorded
-            buffers.find((uri,buf)=> uri == buffer.uri) match
-                case None =>
-                    val myBuffer    = 
-                        if buffer.uri == "" then 
-                            ByteBuffer.wrap(Array.empty)
-                        else 
-                            val fileStream  = new FileInputStream(buffer.uri)
-                            val bufferedStream  = new BufferedInputStream(fileStream)
-                            val buf = ByteBuffer.wrap(bufferedStream.readAllBytes())
-                            bufferedStream.close()
-                            buf
-                    buffers += ((buffer.uri, myBuffer))
-                    myBuffer
-                case Some((uri, buffer)) => buffer
-    //in bytes
-    val stride : Int = bufferView.byteStride match
-        case Some(value) => value
-        case None        => 
-            //It has to be calculated manually
-            val componentSize = AttribType.byteSize(AttribType.fromGL(accessor.componentType))
-            val typeSize = accessor.`type` match 
-                case "SCALAR"       => 1
-                case "VEC2"         => 2
-                case "VEC3"         => 3
-                case "VEC4"|"MAT2"  => 4
-                case "MAT3"         => 9
-                case "MAT4"         => 16   
-            componentSize * typeSize                   
-    new Accessor(
-        name        = name, 
-        buffer      = data, 
-        offset      = accessor.byteOffset, 
-        size        = bufferView.byteLength, 
-        stride      = stride,
-        `type`      = AttribType.fromGL(accessor.componentType),
-        mode        = mode,
-        normalized  = accessor.normalized)
-end parseAccessor
-
 
 
 private object Wrapper :
@@ -434,18 +359,78 @@ private object Wrapper :
         
         def texCoord: Int = base.optInt("texCoord", 0)     
     end TextureInfo
-
 end Wrapper
 
 
-/**
+/** Procedures for parsing GLTF streams
   * 
   */
 object GLTF:
+
+    @throws[FileNotFoundException]
+    @throws[NoSuchElementException]
+    private def parseAccessor(
+            accessor:   Wrapper.Accessor, 
+            name:       String, 
+            mode:       Topology                            = Topology.TRIANGLES, 
+            buffers:    ArrayBuffer[(String, ByteBuffer)]   = ArrayBuffer.empty
+    )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Accessor =
+        val bufferView = Try{accessor.bufferView.get} match
+            //NOTE: It is not an error if bufferView doesn't exist, it just means that the accessor is a sparse accessor
+            //The sparse accessor should then be translated into a regular accessor if possible
+            case Success(value)     => value
+            case Failure(exception) => ??? //TODO: implement sparse accessors
+        val buffer = bufferView.buffer
+        //FIXME: It is not an error per standard if buffer uri does not exist, though that means something else which I haven't figured out yet.
+        val data = 
+            if buffer.isInlineData then 
+                //FIXME: Do the `right` thing akchualliy
+                Try {buffer.uri.drop("data:".length).map{_.toByte}.toArray } match
+                    case Failure(_)      => ByteBuffer.wrap(Array.empty)
+                    case Success(value)  => ByteBuffer.wrap(value)
+            else//It's in an other file
+                //Check for the possibility that the buffer already is recorded
+                buffers.find((uri,buf)=> uri == buffer.uri) match
+                    case None =>
+                        val myBuffer    = 
+                            if buffer.uri == "" then 
+                                ByteBuffer.wrap(Array.empty)
+                            else 
+                                val fileStream  = new FileInputStream(buffer.uri)
+                                val bufferedStream  = new BufferedInputStream(fileStream)
+                                val buf = ByteBuffer.wrap(bufferedStream.readAllBytes())
+                                bufferedStream.close()
+                                buf
+                        buffers += ((buffer.uri, myBuffer))
+                        myBuffer
+                    case Some((uri, buffer)) => buffer
+        //in bytes
+        val stride : Int = bufferView.byteStride match
+            case Some(value) => value
+            case None        => 
+                //It has to be calculated manually
+                val componentSize = AttribType.byteSize(AttribType.fromGL(accessor.componentType))
+                val typeSize = accessor.`type` match 
+                    case "SCALAR"       => 1
+                    case "VEC2"         => 2
+                    case "VEC3"         => 3
+                    case "VEC4"|"MAT2"  => 4
+                    case "MAT3"         => 9
+                    case "MAT4"         => 16   
+                componentSize * typeSize                   
+        new Accessor(
+            name        = name, 
+            buffer      = data, 
+            offset      = accessor.byteOffset, 
+            size        = bufferView.byteLength, 
+            stride      = stride,
+            `type`      = AttribType.fromGL(accessor.componentType),
+            mode        = mode,
+            normalized  = accessor.normalized)
     
-    
+
     private def parseGLTFsampler(
-        sampler:    Wrapper.Sampler
+        sampler:        Wrapper.Sampler
     )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Sampler = 
         val magFiler = sampler.magFilter
         val minFilter= sampler.minFilter
@@ -460,9 +445,8 @@ object GLTF:
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
     private def parseGLTFtexture(
-        textureInfo: Wrapper.TextureInfo
+        textureInfo:    Wrapper.TextureInfo
     )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Texture = 
-        
         val image   = textureInfo.texture.source
         val sampler = textureInfo.texture.sampler
         val coord   = textureInfo.texCoord
@@ -495,12 +479,10 @@ object GLTF:
             buffer = buf)
         
 
-    
-    
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
     private def parseGLTFmaterial(
-        material:   Wrapper.Material
+        material:       Wrapper.Material
     )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Material = 
         val pbr     = material.pbrMetallicRoughness
         val normals = material.normalTexture
@@ -509,7 +491,7 @@ object GLTF:
             
         
         new se.lth.cs.student.battle3d.rsc.Material(
-            pbr             = None,
+            pbr             = None, //TODO: implement PBR
             normals         = (normals match
                 case None           => None
                 case Some(normals)    => Some(parseGLTFtexture(normals))),
@@ -532,7 +514,7 @@ object GLTF:
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
     private def parseGLTFmesh(
-        mesh:       Wrapper.Mesh
+        mesh:           Wrapper.Mesh
     )(using gltf: JSONObject): Vector[se.lth.cs.student.battle3d.rsc.Mesh] = 
         val b =0
         /** Persistant storage for all primitives: 
@@ -585,11 +567,12 @@ object GLTF:
         }
         .toVector
 
+
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
     private def parseToModel(
-        mesh: Wrapper.Mesh,
-        matrix: Mat4,
+        mesh:           Wrapper.Mesh,
+        matrix:         Mat4,
     )(using gltf: JSONObject): Model =
         val name = 
             val myName = mesh.name
@@ -597,6 +580,7 @@ object GLTF:
                 Renderer.generateUID(if myName == "" then "model" else myName)
             else myName
         new Model(name, matrix, parseGLTFmesh(mesh))
+
 
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
@@ -612,7 +596,14 @@ object GLTF:
                 myScene.models += parseToModel(mesh.get, matrix)
             node.children.foreach{node => parseGLTFnode(node, matrix, gltfScene, myScene)}
 
+
+    //////////////////////////////////////////////////
+    //                                              //
+    //          PUBLIC      INTERFACES              //
+    //                                              //
+    //////////////////////////////////////////////////
     
+
     /** Parses data stream adhering to GLTF-standard to the models contained.
       * 
       * NOTE: `(legal JSON-syntax NAND legal GLTF-semantics) => parsing failure`
@@ -620,24 +611,20 @@ object GLTF:
       * @param data GLTF input stream
       * @return list of valid Models, all of them being positioned at orgin, being unrotated
       */
-    def parseModels(data: String): Vector[Model] =
+    @throws[Nothing]
+    def parseModels(input: InputStream):    Vector[Model] =
         val beginTime = System.currentTimeMillis()
         try 
-            given json: JSONObject = try JSONObject(data) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in datastream")
-            
-            //Generate indices
-            (Try{0 until json.getJSONArray("meshes").length()} match
-                case Success(range) => range
-                case Failure(_)     => (0 until 0))
-            //Generate Wrappers
-            .map{ix => Try{json.getJSONArray("meshes").getJSONObject(ix)} match
+            given json: JSONObject = try JSONObject(input.readAllBytes().toString()) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in datastream")
+            val meshes = try json.getJSONArray("meshes") catch case _ => throw new NoSuchElementException
+
+            (0 until meshes.length())
+            .map{ix => Try{meshes.getJSONObject(ix)} match
                 case Failure(exception) => None
                 case Success(mesh)      => Some(new Wrapper.Mesh(mesh))
             }
             .filter{_!=None}
-            .map{mesh =>
-                parseToModel(mesh.get, new Mat4)
-            } 
+            .map{mesh => parseToModel(mesh.get, new Mat4)} 
             .toVector
         catch 
             case e: IllegalArgumentException =>
@@ -661,15 +648,16 @@ object GLTF:
       * @param data GLTF input stream
       * @return Optional Scene that is decided as the first scene and all other scenes
       */
-    def parse(data: String): (Option[Scene], Vector[Scene]) =
+    @throws[Nothing]
+    def parseScenes(input:    InputStream): (Option[Scene], Vector[Scene]) =
         val beginTie = System.currentTimeMillis()
         try 
-            given json: JSONObject = try JSONObject(data) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in data stream")
+            given json: JSONObject = try JSONObject(input.readAllBytes().map{_.toChar}.toString) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in data stream")
+            val jsonScene = json.getJSONArray("scenes")
 
-            val scenes = (Try{(0 until json.getJSONArray("scenes").length())} match
-                case Failure(_)     => Range(0,0)
-                case Success(value) => value)
-            .map{ix => Try{json.getJSONArray("scenes").getJSONObject(ix)} match
+            val scenes = 
+            (0 until jsonScene.length())
+            .map{ix => Try{jsonScene.getJSONObject(ix)} match
                 case Failure(_)     => None
                 case Success(value) => Some(value)}
             .filter(_!=None)
@@ -679,11 +667,14 @@ object GLTF:
                 wrapperScene.nodes.foreach{parseGLTFnode(_, new Mat4, wrapperScene, scene )}
                 scene
             }
-            //first 
+            .toVector
+            
+            //first to be viewed
             val scene = Try{scenes(json.getInt("scene"))} match
                 case Success(scene) => Some(scene)
                 case Failure(_)     => if !scenes.isEmpty then Some(scenes(0)) else None
-            (scene, scenes.toVector)
+            
+            (scene, scenes)
 
         catch
             case e: IllegalArgumentException =>
