@@ -37,7 +37,8 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 libraryDependencies += "org.lwjgl" % "lwjgl" % "3.1.0"
 libraryDependencies += "org.lwjgl" % "lwjgl-opengl" % "3.1.0"
 libraryDependencies += "org.lwjgl" % "lwjgl-glfw" % "3.1.0"
-
+// https://mvnrepository.com/artifact/org.l33tlabs.twl/pngdecoder
+libraryDependencies += "org.l33tlabs.twl" % "pngdecoder" % "1.0"
 
 
 libraryDependencies += "io.github.java-graphics" % "glm" % "1.0.1"
