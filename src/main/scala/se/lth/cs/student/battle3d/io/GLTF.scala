@@ -1,29 +1,27 @@
 package se.lth.cs.student.battle3d.io
 
 import org.json.{JSONObject, JSONException}
-
 import java.io.{
     BufferedInputStream,
     FileInputStream,
     FileNotFoundException,
     IOException,
 }
-
 import java.nio.ByteBuffer
-
+import de.matthiasmann.twl.utils.PNGDecoder
 import se.lth.cs.student.battle3d.gl.{AttribType, Topology}
 import se.lth.cs.student.battle3d.gfx.Renderer
 import se.lth.cs.student.battle3d.rsc.{
-    Accessor => Accessor,
+    Accessor,
+    Material,
     Mesh, 
     Model, 
-    Scene
+    Sampler,
+    Scene,
+    Texture
 }
-
 import scala.util.{Try, Success, Failure}
-
 import collection.mutable.ArrayBuffer
-
 import jglm.{
     Jglm, 
     Mat4, 
@@ -31,7 +29,7 @@ import jglm.{
     Vec3,
     Vec4
 }
-import java.io.FileNotFoundException
+
 
 
 //Private so it's only visible in this package
@@ -121,30 +119,35 @@ private object Wrapper :
 
 
     abstract class GLTFbase protected(protected val base: JSONObject)(using gltf: JSONObject):
-        protected def getGLTFObject(`type`: String): Option[JSONObject] = 
+        
+        final protected def getGLTFObject(`type`: String): Try[JSONObject] = 
             Try {gltf.getJSONArray(
                 `type` match
                     case "mesh" => "meshes"
                     case _      => `type` + "s"
-            ).getJSONObject(base.getInt(`type`))} match
-                case Success(value)     => Some(value)
-                case Failure(exception) => None
+            ).getJSONObject(base.getInt(`type`))}
             
-        protected def getGLTFObject(`type`: String, name: String, from: JSONObject = base): Option[JSONObject] = 
-            Try {
-                gltf.getJSONArray(`type`match 
+        final protected def getGLTFObject(`type`: String, name: String, from: JSONObject = base): Try[JSONObject] = 
+            Try {gltf.getJSONArray(
+                `type`match 
                     case "mesh" => "meshes"
-                    case _      => `type`+"s").getJSONObject(from.getInt(name))
-            } match
-                case Success(value) => Some(value)
-                case Failure(_)     => None
-    
+                    case _      => `type`+"s").getJSONObject(from.getInt(name))}
+    object GLTFbase:
+
+        def getGLTFObject(base: JSONObject, `type`: String, name: String = "")(using gltf: JSONObject): Try[JSONObject] =
+            Try{gltf.getJSONArray(
+                `type` match
+                    case "mesh" => "meshes"
+                    case _      => `type`+"s").getJSONObject(base.getInt(if name == "" then `type` else name))}
+    end GLTFbase
+
     //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-accessor
     class Accessor      (protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
+        
         def bufferView: Option[BufferView] = 
-            util.Try{getGLTFObject("bufferView").get} match 
-                case util.Success(obj: JSONObject) => Some(new BufferView(obj))
-                case util.Failure(e)=> None
+            getGLTFObject("bufferView") match 
+                case Success(value) => Some(new BufferView(value))
+                case Failure(_)     => None
             
         def byteOffset: Int =
             base.optInt("byteOffset", 0)
@@ -161,13 +164,13 @@ private object Wrapper :
             try base.getString("type") catch case _ => throw new NoSuchElementException("type is missing")
             
         def max: Vector[Int] =
-            util.Try{(0 until base.getJSONArray("max").length())
+            Try{(0 until base.getJSONArray("max").length())
             .map{ ix=>base.getJSONArray("max").getInt(ix)}} match
                 case Failure(exception) => Vector.empty
                 case Success(value)     => value.toVector
         
         def min: Vector[Int] =
-            util.Try{(0 until base.getJSONArray("min").length())
+            Try{(0 until base.getJSONArray("min").length())
             .map{ ix =>base.getJSONArray("min").getInt(ix)}} match
                 case Failure(exception) => Vector.empty
                 case Success(value)     => value.toVector
@@ -180,9 +183,7 @@ private object Wrapper :
         def byteLength: Int = try base.getInt("byteLength") catch case _ => throw new NoSuchElementException("byteLength")
         
         def uri: String = 
-            Try{base.getString("uri")} match
-                case Failure(exception) => ""
-                case Success(value)     => value
+            base.optString("uri","")
         
         def isInlineData: Boolean =
             //FIXME: make it totally inline with the standard
@@ -196,7 +197,9 @@ private object Wrapper :
             
         @throws[NoSuchElementException]
         def buffer: Buffer =
-            Wrapper.Buffer(getGLTFObject("buffer").get)
+            Buffer(getGLTFObject("buffer") match
+                case Failure(exception) => throw new NoSuchElementException
+                case Success(value)     => value)
         
         def byteOffset: Int = base.optInt("byteOffset", 0)
         
@@ -206,42 +209,53 @@ private object Wrapper :
         
         //TODO: See how functionality interacts with accessor and buffer
         def byteStride: Option[Int] = 
-            util.Try{base.getInt("byteStride")} match
+            Try{base.getInt("byteStride")} match
                 case Failure(exception) => None
-                case Success(value) => Some(value)1
+                case Success(value)     => Some(value)
         
         def target: Option[Int] = 
-            util.Try{base.getInt("target")} match
+            Try{base.getInt("target")} match
                 case Failure(exception) => None
-                case Success(value) => Some(value)
+                case Success(value)     => Some(value)
     end BufferView
     
+    //see: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-image
+    class Image(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
+        def uri: String = base.optString("uri", "")
+        //Valid: (defined MimeType AND defined bufferView) XOR defined URI
+        def mimeType: String = base.optString("mimeType", "")
+        def bufferView: Option[BufferView] = getGLTFObject("bufferView") match
+            case Failure(exception) => None
+            case Success(value)     => Some(new BufferView(value))
+    end Image
+    
+    //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material
     class Material      (protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
         
         def pbrMetallicRoughness: Option[Material.PBRMetallicRoughness] = 
-            Try{getGLTFObject("pbrMetallicRoughness")} match
+            getGLTFObject("pbrMetallicRoughness") match
                 case Failure(exception) => None
-                case Success(value)     => Some(new Material.PBRMetallicRoughness(value.get))
+                case Success(value)     => Some(new Material.PBRMetallicRoughness(value))
 
         def normalTexture: Option[Material.NormalTextureInfo] = 
-            Try{getGLTFObject("normalTextureInfo", "normalTexture")} match
+            getGLTFObject("normalTextureInfo", "normalTexture") match
                 case Failure(exception) => None
-                case Success(value)     => Some(new Material.NormalTextureInfo(value.get))
+                case Success(value)     => Some(new Material.NormalTextureInfo(value))
+        
         def occlusionTexture: Option[Material.OcclusionTextureInfo] = 
-            Try{getGLTFObject("occlusionTextureInfo", "occlusionTexture")} match
+            getGLTFObject("occlusionTextureInfo", "occlusionTexture") match
                 case Failure(exception) => None
-                case Success(value)     => Some(new Material.OcclusionTextureInfo(value.get))
+                case Success(value)     => Some(new Material.OcclusionTextureInfo(value))
         def emissiveTexture: Option[TextureInfo] = 
-            Try{getGLTFObject("textureInfo", "emissiveTexture")} match
+            getGLTFObject("textureInfo", "emissiveTexture") match
                 case Failure(exception) => None
-                case Success(value)     => Some(new TextureInfo(value.get))
+                case Success(value)     => Some(new TextureInfo(value))
         def emissiveFactor: Vec3 =
-            try
-                Vec3{
-                    val arr = base.getJSONArray("emissiveFactor")
-                    (0 until 3)
-                    .map{ix => arr.optFloat(ix, 0.0f)}
-                    .toArray}
+            try Vec3{
+                val arr = base.getJSONArray("emissiveFactor")
+                (0 until 3)
+                .map{ix => arr.optFloat(ix, 0.0f)}
+                .toArray}
             catch case _ => Vec3(0,0,0)
         def alphaMode: String = 
             base.optString("alphaMode", "OPAQUE")
@@ -253,37 +267,30 @@ private object Wrapper :
         class PBRMetallicRoughness(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
             
             def baseColorFactor: Vec4 =
-                try 
-                    Vec4{
-                        val arr = base.getJSONArray("baseColorFactor")
-                        (0 until 4)
-                        .map(ix => arr.optFloat(ix, 1.0f))
-                        .toArray}
-                catch case _ => Vec4(1.0f,1.0f,1.0f,1.0f)
-            def metallicFactor: Float = base.optFloat("metallicFactor", 1.0f)
-
-            def roughnessFactor:Float = base.optFloat("roughnessFactor",1.0f)
-
+                try Vec4{
+                    val arr = base.getJSONArray("baseColorFactor")
+                    (0 until 4)
+                    .map(ix => arr.optFloat(ix, 1.0f))
+                    .toArray}
+                catch case _ => Vec4(Array.fill[Float](4)(1.0f))
+            def metallicFactor: Float = 
+                base.optFloat("metallicFactor", 1.0f)
+            def roughnessFactor:Float = 
+                base.optFloat("roughnessFactor",1.0f)
             def metallicRoughnessTexture: Option[TextureInfo] = 
-                Try{getGLTFObject("textureInfo")} match
+                getGLTFObject("textureInfo", "metallicRoughnessTexture") match
                     case Failure(exception) => None
-                    case Success(value)     => Some(new TextureInfo(value.get))
+                    case Success(value)     => Some(new TextureInfo(value))
 
         class NormalTextureInfo(protected override val base: JSONObject)(using gltf: JSONObject) extends TextureInfo(base):
             def scale: Float = base.optFloat("scale", 1.0f)
         
         class OcclusionTextureInfo(protected override val base: JSONObject)(using gltf: JSONObject) extends TextureInfo(base):
             def strength: Float = base.optFloat("strength", 1.0f)
-
-        
-
     end Material
             
-                
-                
-
-
-    class Mesh (protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
+    //see: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-mesh
+    class Mesh (override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
         def name: String = 
             base.optString("name", "")
 
@@ -309,20 +316,24 @@ private object Wrapper :
             catch 
                 case _ => throw new NoSuchElementException(" Mesh primitives are missing")
     object Mesh:
+        
+        //see: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-mesh-primitive
         class Primitive(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
+            
             @throws[NoSuchElementException]
             def attributes: JSONObject = 
                 try base.getJSONObject("attributes") catch case _ => throw new NoSuchElementException("Mesh primitive attributes missing")
 
             def indices: Option[Wrapper.Accessor] = 
                 getGLTFObject("accessor", "indices") match
-                    case None           => None
-                    case Some(accessor) => Some(new Wrapper.Accessor(accessor))
+                    case Failure(exception) => None 
+                    case Success(value)     => Some(new Wrapper.Accessor(value))
+                
             
             def material : Option[Wrapper.Material] = 
                 getGLTFObject("material") match
-                    case None           => None 
-                    case Some(material) => Some(new Wrapper.Material(material))
+                    case Failure(_)         => None 
+                    case Success(material)  => Some(new Wrapper.Material(material))
                     
             def mode : Topology = 
                 Try{base.getInt("mode")} match
@@ -336,31 +347,25 @@ private object Wrapper :
         //If both fails, return unit matix
         //[potential FIXME:] if there's discrepency in how it looks on the screen, then we'll transpose the matrix
         def matrix: Mat4 =
-            def getFloatArray(name: String): Array[Float] =
+            def getFloatArray(name: String, default: Float): Array[Float] =
                 (0 until base.getJSONArray(name).length())
-                .map{ix => base.getJSONArray(name).getFloat(ix)}
+                .map{ix => base.getJSONArray(name).optFloat(ix, default)}
                 .toArray
-            Try{getFloatArray("matrix")} match
+            Try{getFloatArray("matrix", default=0)} match
                 case Success(value) => Mat4(value)
                 case Failure(_) =>
-                    val translation = Try{getFloatArray("translation")} match
+                    val translation = Try{getFloatArray("translation", 0.0f)} match
                         case Failure(_)     => Vec3(0,0,0)
-                        case Success(values)=> Vec3((0 until 3).indices.map{ix=> Try{values(ix)} match
-                            case Failure(exception) => 0.0f
-                            case Success(value) => value
-                        }.toArray)
+                        case Success(values)=> Vec3(values)
                     //luckily Both GLM and GLTF uses [I,J,K,S] notation for quaternions
-                    val rotation    = Try{getFloatArray("rotation")} match
+                    val rotation    = Try{getFloatArray("rotation", 0.0f)} match
                         case Failure(_)     => Quat(0,0,0,1)
                         case Success(arr)   => 
                             if arr.length >= 4 then Quat(arr(0),arr(1),arr(2),arr(3))
                             else ??? //TODO: Make Quaternions if array is corrupt
-                    val scale       = Try{getFloatArray("scale")} match
+                    val scale       = Try{getFloatArray("scale", 1.0f)} match
                         case Failure(_)         => Vec3(1,1,1)
-                        case Success(values)    => Vec3((0 until 3).indices.map{ix=> Try{values(ix)} match
-                            case Failure(exception) => 1.0f
-                            case Success(value) => value
-                        }.toArray)
+                        case Success(values)    => Vec3(values)
 
                     Mat4.translate(translation)
                     .mult(rotation.toMatrix())
@@ -380,12 +385,23 @@ private object Wrapper :
         
         def mesh: Option[Wrapper.Mesh] = 
             getGLTFObject("mesh") match
-                case None       => None
-                case Some(value)=> Some(new Wrapper.Mesh(value))
-
+                case Failure(_)     => None
+                case Success(value) => Some(new Wrapper.Mesh(value))
     end Node
 
-        //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-scene
+    //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-sampler
+    class Sampler (protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
+        def magFilter: Option[Int] = Try{base.getInt("magFilter")} match
+            case Failure(exception) => None
+            case Success(value)     => Some(value)
+        def minFilter: Option[Int] = Try{base.getInt("minFilter")} match
+            case Failure(exception) => None
+            case Success(value)     => Some(value)
+        def wrapS: Int = base.optInt("wrapS", 10497)
+        def wrapT: Int = base.optInt("wrapT", 10497)
+    end Sampler
+        
+    //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-scene
     class Scene(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
         def nodes: Vector[Wrapper.Node] = 
             (0 until base.getJSONArray("nodes").length())
@@ -396,91 +412,177 @@ private object Wrapper :
             .toVector
     end Scene
 
+    //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-texture
     class Texture(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
-        
+        def sampler: Option[Sampler] = getGLTFObject("sampler") match
+            case Failure(exception) => None
+            case Success(value)     => Some(new Sampler(value))
+        @throws[NoSuchElementException] //NOTE: there are no extensions in place thus when failure, it's undefined
+        def source: Image   = getGLTFObject("image", "source") match
+            case Failure(exception) => throw new NoSuchElementException
+            case Success(value)     => Image(value)
     end Texture
+    
+    //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-textureinfo
     class TextureInfo(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
         
         @throws[NoSuchElementException]
-        def index : Texture = Texture(getGLTFObject("texture", "index").get)
+        def index : Wrapper.Texture = Wrapper.Texture(getGLTFObject("texture", "index").get)
         
-        def texture : Texture = index
+        def texture : Wrapper.Texture = index
         
         def texCoord: Int = base.optInt("texCoord", 0)     
-
-
-
+    end TextureInfo
+end Wrapper
 
 
 object GLTF:
-
-    @throws[NoSuchElementException]
-        @throws[FileNotFoundException]
-        def meshes: Vector[Mesh] = 
-            val obj         = try getGLTFObject("mesh").get catch case _ => throw new NoSuchElementException
-            val primitives  = try obj.getJSONArray("primitives") catch case _ => throw new NoSuchElementException
-            // Persistant storage for all primitives: 
-            // There is the (highly likely) possibility that multiple primitives are stored in the same buffer, 
-            // then it's a good idea to save them in the same buffer such that we do not need to have redundancies when it's time to parse
-            // the GLTF primitives into Battle3D Meshes.
-            val buffers: ArrayBuffer[(String, ByteBuffer)] = ArrayBuffer.empty
-            //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-mesh-primitive
-            (0 until primitives.length)
-            .map{ix => primitives.getJSONObject(ix)}
-            //Translate GLTF.Mesh.Primitive -> Battle3D.Mesh 
-            .map{primitive =>   
-                //If this fails, the entire operation fails
-                val attributesObject  = primitive.getJSONObject("attributes")
-                val positionsAccessor = new Accessor(getGLTFObject("accessor", "POSITION",   from = attributesObject).get) //warranted NoSuchElementException on failure
-                //Note: For the mesh primitive to be valid, there needs to be geometries;
-                //it is totally possible to load a mesh that lacks any textures or normals;
-                //if there are no normals, the lighting will appear all messed up 
-                //And if there are no textures, then there might as well be some default texture.
-                val normalsAccessor  = getGLTFObject("accessor", "NORMAL",      from = attributesObject)
-                val texturesAccessor = getGLTFObject("accessor", "TEXCOORD_0",  from = attributesObject)
-                val indicesAccessor  = getGLTFObject("accessor", "indices")
-                val materials        = getGLTFObject("material", "material")
-                val mode             = Try{Topology.fromGL(primitive.getInt("mode"))} match
-                    case Success(value) => value
-                    case Failure(_)     => Topology.TRIANGLES
-                //For each GLTF accessor, the buffer, the size, the offset, the stride and so on needs to be retrieved.
-                val vertexAccessors = collection.mutable.ArrayBuffer.empty[se.lth.cs.student.battle3d.rsc.Accessor]
-                vertexAccessors += (parseAccessor(positionsAccessor, "positions", mode, buffers))
-                if normalsAccessor != None then 
-                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(normalsAccessor.get), "normals", mode))
-                if texturesAccessor != None then
-                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(texturesAccessor.get), "textures", mode))
-                
-                Mesh(
-                    vertexAccessors.toSeq, 
-                    indicesAccessor match
-                        case None => None
-                        case Some(accessor) => Some(parseAccessor(new Wrapper.Accessor(accessor), "indices", mode)),
-                    //TODO: Add materials
-                    None
-                )
-            }
-            .toVector
+    
+    private def parseGLTFsampler(
+        sampler: Wrapper.Sampler
+    )(using gltf: JSONObject): Sampler = 
+        new Sampler(
+            magFilter = sampler.magFilter,
+            minFilter = sampler.minFilter,
+            wrapS = sampler.wrapS,
+            wrapT = sampler.wrapT
+        )
 
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
-    private def parse(
+    private def parseGLTFtexture(
+        textureInfo: Wrapper.TextureInfo
+    )(using gltf: JSONObject): Texture = 
+        
+        val image   = textureInfo.texture.source
+        val sampler = textureInfo.texture.sampler
+        val coord   = textureInfo.texCoord
+        val fileStream = new BufferedInputStream(new FileInputStream(image.uri)) //TODO: handle case when texture is in a bufferView
+        
+        val decoder = PNGDecoder(fileStream)
+
+        val buf = ByteBuffer.allocateDirect(
+            4 * decoder.getWidth() * decoder.getHeight());
+        decoder.decode(buf, decoder.getWidth() * 4, PNGDecoder.Format.RGBA);
+            buf.flip();
+        
+        new Texture(
+            sampler = (sampler match
+                case None => None 
+                case Some(sampler) => Some(parseGLTFsampler(sampler))),
+            coord = coord,
+            buffer = buf
+        )
+
+
+    @throws[NoSuchElementException]
+    @throws[FileNotFoundException]
+    private def parseGLTFmaterial(
+        material: Wrapper.Material
+    )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Material = 
+        val pbr     = material.pbrMetallicRoughness
+        val normals = material.normalTexture
+        val occlusion=material.occlusionTexture
+        val emissive= material.emissiveTexture
+            
+        
+        new se.lth.cs.student.battle3d.rsc.Material(
+            pbr             = None,
+            normals         = (normals match
+                case None           => None
+                case Some(normals)    => Some(parseGLTFtexture(normals))),
+            occlusion       = (occlusion match
+                case None           => None
+                case Some(occlusion)=> Some(parseGLTFtexture(occlusion))),
+            emissiveTexture = (emissive match
+                case None           => None
+                case Some(emissive) => Some(parseGLTFtexture(emissive))),
+
+            normalScale         = if normals == None then 0 else normals.get.scale,
+            occlusionStrength   = if occlusion==None then 0 else occlusion.get.strength,
+            emissiveFactor      = material.emissiveFactor,
+            alphaMode           = material.alphaMode,
+            alphaCutoff         = material.alphaCutoff,
+            doubleSided         = material.doubleSided
+        )
+
+
+    @throws[NoSuchElementException]
+    @throws[FileNotFoundException]
+    private def parseGLTFMesh(
+        mesh: Wrapper.Mesh
+    )(using gltf: JSONObject): Vector[Mesh] = 
+        val b =0
+        /** Persistant storage for all primitives: 
+          * There is the (highly likely) possibility that multiple primitives are stored in the same buffer,
+          * then it's a good idea to save them in the same buffer such that we do not need to have redundancies when it's time to parse
+          * the GLTF primitives into Battle3D Meshes.
+          */
+        val buffers: ArrayBuffer[(String, ByteBuffer)] = ArrayBuffer.empty
+    
+        mesh.primitives
+        //Translate GLTF.Mesh.Primitive -> Battle3D.Mesh 
+        .map{primitive =>   
+            //If this fails, the entire operation fails
+            val attributes  = primitive.attributes
+            val positionsAccessor = new Wrapper.Accessor(
+                Wrapper.GLTFbase.getGLTFObject(attributes, "accessor", "POSITION") match
+                    case Failure(_)     => throw new NoSuchElementException
+                    case Success(value) => (value))
+
+            //For each GLTF accessor, the buffer, the size, the offset, the stride and so on needs to be retrieved.
+            val vertexAccessors = collection.mutable.ArrayBuffer.empty[se.lth.cs.student.battle3d.rsc.Accessor]
+            val mode             = primitive.mode
+            //Note: For the mesh primitive to be valid, there needs to be geometries;
+            //it is totally possible to load a mesh that lacks any textures or normals;
+            //if there are no normals, the lighting will appear all messed up 
+            //And if there are no textures, then there might as well be some default texture.
+            Wrapper.GLTFbase.getGLTFObject(attributes,"accessor","NORMAL") match
+                case Failure(exception) => 
+                case Success(accessor)  => 
+                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "normals", mode))
+            Wrapper.GLTFbase.getGLTFObject(attributes,"accessor","TEXCOORD_0") match
+                case Failure(exception) => 
+                case Success(accessor)  => 
+                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "textures", mode))
+            
+            val indicesAccessor  = Wrapper.GLTFbase.getGLTFObject(mesh.base,"accessor","indices") match
+                case Failure(exception) => None
+                case Success(accessor)  => Some(parseAccessor(new Wrapper.Accessor(accessor), "indices", mode))
+            val materials        = primitive.material
+            
+            vertexAccessors += (parseAccessor(positionsAccessor, "positions", mode, buffers))
+                
+            Mesh(
+                vertexAccessors.toSeq, 
+                indicesAccessor,
+                materials match
+                    case None        => None
+                    case Some(value) => Some(parseGLTFmaterial(materials.get))
+            )
+        }
+        .toVector
+
+    
+    @throws[NoSuchElementException]
+    @throws[FileNotFoundException]
+    private def parseNode(
         node:           Wrapper.Node,
         parentMatrix:   Mat4, 
         gltfScene:      Wrapper.Scene, 
         myScene:        se.lth.cs.student.battle3d.rsc.Scene)
         (using gltf: JSONObject): Unit =
             
-            val matrix = parentMatrix.mult(node.matrix)
-            val meshes = node.meshes
-            if !meshes.isEmpty then 
+            val matrix  = parentMatrix.mult(node.matrix)
+            val mesh    = node.mesh
+            if mesh != None then 
                 val name = 
-                    val myName = this.meshName
+                    val myName = mesh.get.name
                     if(myName == "" || Renderer.sceneGraphContains(myName)) then 
                         Renderer.generateUID(if myName == "" then "model" else myName)
                     else myName
-                myScene.models += new Model(name, matrix, meshes)
-            this.children.foreach{_.parse(matrix, gltfScene, myScene)}
+                myScene.models += new Model(name, matrix, parseGLTFMesh(mesh.get))
+            node.children.foreach{node => parseNode(node, matrix, gltfScene, myScene)}
 
     def parseModels(data: String): Vector[Model] =
         try 
@@ -488,7 +590,8 @@ object GLTF:
             val meshes = (Try{0 until json.getJSONArray("meshes").length()} match
                 case Success(range) => range
                 case Failure(_)     => (0 until 0))
-            .map{}
+
+            Vector.empty
         catch 
             case e: IllegalArgumentException =>
                 Logger.printError(e.getMessage() + ", parsing aborted")
@@ -524,7 +627,7 @@ object GLTF:
             .map{json => 
                 val wrapperScene = Wrapper.Scene(json.get)
                 val scene = new Scene(ArrayBuffer.empty)
-                wrapperScene.nodes.foreach{_.parse(new Mat4, wrapperScene, scene )}
+                wrapperScene.nodes.foreach{parseNode(_, new Mat4, wrapperScene, scene )}
                 scene
             }
             //first 

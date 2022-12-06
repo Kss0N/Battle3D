@@ -7,5 +7,8 @@ package se.lth.cs.student.battle3d.rsc
   * @param indexAccessor    optional index accessor for the EBO
   * @param texture          optional texture, case none, use some default texture for aggregation
   */
-final case class Mesh(val vertexAccessors: Seq[Accessor],val indexAccessor: Option[Accessor],val texture: Option[Texture]):
+final case class Mesh(
+  val vertexAccessors:Seq[Accessor],
+  val indexAccessor:  Option[Accessor],
+  val texture:        Option[Material]):
     assert(!vertexAccessors.isEmpty)  
