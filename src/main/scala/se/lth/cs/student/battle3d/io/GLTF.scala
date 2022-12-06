@@ -7,6 +7,7 @@ import java.io.{
     FileNotFoundException,
     IOException,
 }
+import java.lang.UnsupportedOperationException
 import java.nio.ByteBuffer
 import de.matthiasmann.twl.utils.PNGDecoder
 import se.lth.cs.student.battle3d.gl.{AttribType, Topology}
@@ -433,52 +434,73 @@ private object Wrapper :
         
         def texCoord: Int = base.optInt("texCoord", 0)     
     end TextureInfo
+
 end Wrapper
 
 
+/**
+  * 
+  */
 object GLTF:
     
+    
     private def parseGLTFsampler(
-        sampler: Wrapper.Sampler
-    )(using gltf: JSONObject): Sampler = 
+        sampler:    Wrapper.Sampler
+    )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Sampler = 
+        val magFiler = sampler.magFilter
+        val minFilter= sampler.minFilter
         new Sampler(
-            magFilter = sampler.magFilter,
-            minFilter = sampler.minFilter,
+            magFilter = magFiler,
+            minFilter = minFilter,
             wrapS = sampler.wrapS,
             wrapT = sampler.wrapT
         )
+
 
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
     private def parseGLTFtexture(
         textureInfo: Wrapper.TextureInfo
-    )(using gltf: JSONObject): Texture = 
+    )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Texture = 
         
         val image   = textureInfo.texture.source
         val sampler = textureInfo.texture.sampler
         val coord   = textureInfo.texCoord
-        val fileStream = new BufferedInputStream(new FileInputStream(image.uri)) //TODO: handle case when texture is in a bufferView
-        
-        val decoder = PNGDecoder(fileStream)
 
-        val buf = ByteBuffer.allocateDirect(
-            4 * decoder.getWidth() * decoder.getHeight());
-        decoder.decode(buf, decoder.getWidth() * 4, PNGDecoder.Format.RGBA);
-            buf.flip();
+        //TODO: handle case when texture is in a bufferView
+        val file    = new FileInputStream(image.uri)
+        val stream  = new BufferedInputStream(file) 
         
+        val decoder = PNGDecoder(stream)
+        val buf     = ByteBuffer.allocateDirect(4 * decoder.getWidth() * decoder.getHeight())
+        
+        try 
+            val buf = ByteBuffer.allocateDirect(
+                4 * decoder.getWidth() * decoder.getHeight())
+                
+            decoder.decode(buf, decoder.getWidth() * 4, PNGDecoder.Format.RGBA)
+                buf.flip();
+        catch 
+            case e: IllegalArgumentException        => throw new NoSuchElementException
+            case f: UnsupportedOperationException   => throw new NoSuchElementException
+            case e: IOException                     => throw new FileNotFoundException
+        finally
+            stream.close()
+
         new Texture(
             sampler = (sampler match
                 case None => None 
                 case Some(sampler) => Some(parseGLTFsampler(sampler))),
             coord = coord,
-            buffer = buf
-        )
+            buffer = buf)
+        
 
-
+    
+    
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
     private def parseGLTFmaterial(
-        material: Wrapper.Material
+        material:   Wrapper.Material
     )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Material = 
         val pbr     = material.pbrMetallicRoughness
         val normals = material.normalTexture
@@ -509,9 +531,9 @@ object GLTF:
 
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
-    private def parseGLTFMesh(
-        mesh: Wrapper.Mesh
-    )(using gltf: JSONObject): Vector[Mesh] = 
+    private def parseGLTFmesh(
+        mesh:       Wrapper.Mesh
+    )(using gltf: JSONObject): Vector[se.lth.cs.student.battle3d.rsc.Mesh] = 
         val b =0
         /** Persistant storage for all primitives: 
           * There is the (highly likely) possibility that multiple primitives are stored in the same buffer,
@@ -563,35 +585,60 @@ object GLTF:
         }
         .toVector
 
-    
     @throws[NoSuchElementException]
     @throws[FileNotFoundException]
-    private def parseNode(
+    private def parseToModel(
+        mesh: Wrapper.Mesh,
+        matrix: Mat4,
+    )(using gltf: JSONObject): Model =
+        val name = 
+            val myName = mesh.name
+            if(myName == "" || Renderer.sceneGraphContains(myName)) then 
+                Renderer.generateUID(if myName == "" then "model" else myName)
+            else myName
+        new Model(name, matrix, parseGLTFmesh(mesh))
+
+    @throws[NoSuchElementException]
+    @throws[FileNotFoundException]
+    private def parseGLTFnode(
         node:           Wrapper.Node,
         parentMatrix:   Mat4, 
         gltfScene:      Wrapper.Scene, 
-        myScene:        se.lth.cs.student.battle3d.rsc.Scene)
-        (using gltf: JSONObject): Unit =
-            
+        myScene:        se.lth.cs.student.battle3d.rsc.Scene
+    )(using gltf: JSONObject): Unit = 
             val matrix  = parentMatrix.mult(node.matrix)
             val mesh    = node.mesh
             if mesh != None then 
-                val name = 
-                    val myName = mesh.get.name
-                    if(myName == "" || Renderer.sceneGraphContains(myName)) then 
-                        Renderer.generateUID(if myName == "" then "model" else myName)
-                    else myName
-                myScene.models += new Model(name, matrix, parseGLTFMesh(mesh.get))
-            node.children.foreach{node => parseNode(node, matrix, gltfScene, myScene)}
+                myScene.models += parseToModel(mesh.get, matrix)
+            node.children.foreach{node => parseGLTFnode(node, matrix, gltfScene, myScene)}
 
+    
+    /** Parses data stream adhering to GLTF-standard to the models contained.
+      * 
+      * NOTE: `(legal JSON-syntax NAND legal GLTF-semantics) => parsing failure`
+      *
+      * @param data GLTF input stream
+      * @return list of valid Models, all of them being positioned at orgin, being unrotated
+      */
     def parseModels(data: String): Vector[Model] =
+        val beginTime = System.currentTimeMillis()
         try 
             given json: JSONObject = try JSONObject(data) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in datastream")
-            val meshes = (Try{0 until json.getJSONArray("meshes").length()} match
+            
+            //Generate indices
+            (Try{0 until json.getJSONArray("meshes").length()} match
                 case Success(range) => range
                 case Failure(_)     => (0 until 0))
-
-            Vector.empty
+            //Generate Wrappers
+            .map{ix => Try{json.getJSONArray("meshes").getJSONObject(ix)} match
+                case Failure(exception) => None
+                case Success(mesh)      => Some(new Wrapper.Mesh(mesh))
+            }
+            .filter{_!=None}
+            .map{mesh =>
+                parseToModel(mesh.get, new Mat4)
+            } 
+            .toVector
         catch 
             case e: IllegalArgumentException =>
                 Logger.printError(e.getMessage() + ", parsing aborted")
@@ -606,14 +653,16 @@ object GLTF:
                 Logger.printWarn("File currently not found, parsing aborted:" + e.getMessage())
                 Vector.empty
 
-
+    
     /** Parses data stream adhering to GLTF-standard to 1 or more scenes
+      * 
       * NOTE: `(legal JSON-syntax NAND legal GLTF-semantics) => parsing failure`
       *
-      * @param data
+      * @param data GLTF input stream
       * @return Optional Scene that is decided as the first scene and all other scenes
       */
     def parse(data: String): (Option[Scene], Vector[Scene]) =
+        val beginTie = System.currentTimeMillis()
         try 
             given json: JSONObject = try JSONObject(data) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in data stream")
 
@@ -627,7 +676,7 @@ object GLTF:
             .map{json => 
                 val wrapperScene = Wrapper.Scene(json.get)
                 val scene = new Scene(ArrayBuffer.empty)
-                wrapperScene.nodes.foreach{parseNode(_, new Mat4, wrapperScene, scene )}
+                wrapperScene.nodes.foreach{parseGLTFnode(_, new Mat4, wrapperScene, scene )}
                 scene
             }
             //first 
