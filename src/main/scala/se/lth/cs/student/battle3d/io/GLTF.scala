@@ -612,11 +612,15 @@ object GLTF:
       * @return list of valid Models, all of them being positioned at orgin, being unrotated
       */
     @throws[Nothing]
-    def parseModels(input: InputStream):    Vector[Model] =
+    def parseModels(input: BufferedInputStream):    Vector[Model] =
         val beginTime = System.currentTimeMillis()
         try 
-            given json: JSONObject = try JSONObject(input.readAllBytes().toString()) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in datastream")
-            val meshes = try json.getJSONArray("meshes") catch case _ => throw new NoSuchElementException
+            given json: JSONObject = 
+                try JSONObject(input.readAllBytes().map{_.toChar}.mkString) 
+                catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in datastream")
+            val meshes = 
+                try json.getJSONArray("meshes") 
+                catch case _ => throw new NoSuchElementException
 
             (0 until meshes.length())
             .map{ix => Try{meshes.getJSONObject(ix)} match
@@ -649,10 +653,10 @@ object GLTF:
       * @return Optional Scene that is decided as the first scene and all other scenes
       */
     @throws[Nothing]
-    def parseScenes(input:    InputStream): (Option[Scene], Vector[Scene]) =
+    def parseScenes(input:    BufferedInputStream): (Option[Scene], Vector[Scene]) =
         val beginTie = System.currentTimeMillis()
         try 
-            given json: JSONObject = try JSONObject(input.readAllBytes().map{_.toChar}.toString) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in data stream")
+            given json: JSONObject = try JSONObject(input.readAllBytes().map{_.toChar}.mkString) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in data stream")
             val jsonScene = json.getJSONArray("scenes")
 
             val scenes = 
