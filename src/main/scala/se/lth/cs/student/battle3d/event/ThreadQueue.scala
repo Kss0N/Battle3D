@@ -3,7 +3,7 @@ package se.lth.cs.student.battle3d.event
 
 import java.util.concurrent.locks.Lock
 
-object Event:
+object ThreadQueue:
     abstract class Message
     //This is used to send messages between threads. 
     //Each thread that needs to receive messages 
