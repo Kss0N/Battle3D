@@ -27,16 +27,22 @@ version := "1.0"
 
 resolvers += Resolver.mavenLocal
 
-
+//addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "x.y.z")
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.1"
 
 //libraryDependencies += "org.jogamp.jogl" % "jogl-all-main" % "2.3.2"
 //libraryDependencies += "org.jogamp.gluegen" % "gluegen-rt-main" % "2.3.2"
 // https://mvnrepository.com/artifact/org.lwjgl/lwjgl
-libraryDependencies += "org.lwjgl" % "lwjgl" % "3.1.0"
-libraryDependencies += "org.lwjgl" % "lwjgl-opengl" % "3.1.0"
-libraryDependencies += "org.lwjgl" % "lwjgl-glfw" % "3.1.0"
+libraryDependencies += "org.lwjgl" % "lwjgl" % "3.3.1"
+libraryDependencies += "org.lwjgl" % "lwjgl" % "3.3.1" classifier "natives-windows"
+
+libraryDependencies += "org.lwjgl" % "lwjgl-opengl" % "3.3.1"
+libraryDependencies += "org.lwjgl" % "lwjgl-opengl" % "3.3.1" classifier "natives-windows"
+
+libraryDependencies += "org.lwjgl" % "lwjgl-glfw" % "3.3.1"
+libraryDependencies += "org.lwjgl" % "lwjgl-glfw" % "3.3.1" classifier "natives-windows"
+
 // https://mvnrepository.com/artifact/org.l33tlabs.twl/pngdecoder
 libraryDependencies += "org.l33tlabs.twl" % "pngdecoder" % "1.0"
 

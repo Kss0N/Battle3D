@@ -1,0 +1,35 @@
+<project>
+	<properties>
+		<lwjgl.version>3.3.1</lwjgl.version>
+		<lwjgl.natives>natives-windows</lwjgl.natives>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl</artifactId>
+			<version>${lwjgl.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<version>${lwjgl.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengl</artifactId>
+			<version>${lwjgl.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl</artifactId>
+			<version>${lwjgl.version}</version>
+			<classifier>${lwjgl.natives}</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<version>${lwjgl.version}</version>
+			<classifier>${lwjgl.natives}</classifier>
+		</dependency>
+	</dependencies>
+</project>
