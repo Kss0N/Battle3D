@@ -25,8 +25,7 @@ final case class Accessor(
     val buffer      : ByteBuffer, 
     val offset      : Long, 
     val size        : Long,
-    val stride      : Int, 
+    val stride      : Int,
     val `type`      : AttribType = AttribType.FLOAT,
-    val mode        : Topology = Topology.TRIANGLES,
     val normalized  : Boolean = false
 )

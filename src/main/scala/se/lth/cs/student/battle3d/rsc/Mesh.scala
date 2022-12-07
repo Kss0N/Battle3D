@@ -1,5 +1,7 @@
 package se.lth.cs.student.battle3d.rsc
 
+import se.lth.cs.student.battle3d.gl.Topology
+
 
 /** Intermediate form to be send to the renderer where it gets aggregated
   * 
@@ -10,5 +12,7 @@ package se.lth.cs.student.battle3d.rsc
 final case class Mesh(
   val vertexAccessors:Seq[Accessor],
   val indexAccessor:  Option[Accessor],
-  val texture:        Option[Material]):
+  val material:        Option[Material],
+  val mode: Topology = Topology.TRIANGLES,
+):
     assert(!vertexAccessors.isEmpty)  

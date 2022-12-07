@@ -191,7 +191,6 @@ private object Wrapper :
             base.optBoolean("doubleSided", false)
     object Material:
         class PBRMetallicRoughness(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
-            
             def baseColorFactor: Vec4 =
                 try Vec4{
                     val arr = base.getJSONArray("baseColorFactor")
@@ -199,10 +198,18 @@ private object Wrapper :
                     .map(ix => arr.optFloat(ix, 1.0f))
                     .toArray}
                 catch case _ => Vec4(Array.fill[Float](4)(1.0f))
+
+            def baseColorTexture: Option[Wrapper.TextureInfo] =
+                getGLTFObject("textureInfo", "baseColorTexture") match
+                    case Failure(_) => None
+                    case Success(value) => Some(new TextureInfo(value))
+                
             def metallicFactor: Float = 
                 base.optFloat("metallicFactor", 1.0f)
+
             def roughnessFactor:Float = 
                 base.optFloat("roughnessFactor",1.0f)
+
             def metallicRoughnessTexture: Option[TextureInfo] = 
                 getGLTFObject("textureInfo", "metallicRoughnessTexture") match
                     case Failure(exception) => None
@@ -372,7 +379,6 @@ object GLTF:
     private def parseAccessor(
             accessor:   Wrapper.Accessor, 
             name:       String, 
-            mode:       Topology                            = Topology.TRIANGLES, 
             buffers:    ArrayBuffer[(String, ByteBuffer)]   = ArrayBuffer.empty
     )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Accessor =
         val bufferView = Try{accessor.bufferView.get} match
@@ -396,11 +402,14 @@ object GLTF:
                             if buffer.uri == "" then 
                                 ByteBuffer.wrap(Array.empty)
                             else 
-                                val fileStream  = new FileInputStream(buffer.uri)
-                                val bufferedStream  = new BufferedInputStream(fileStream)
-                                val buf = ByteBuffer.wrap(bufferedStream.readAllBytes())
-                                bufferedStream.close()
-                                buf
+                                var bufferedStream : BufferedInputStream  = null 
+                                try
+                                    val fileStream  = new FileInputStream(buffer.uri)
+                                    bufferedStream = new BufferedInputStream(fileStream)
+                                    val buf = ByteBuffer.wrap(bufferedStream.readAllBytes())
+                                    buf
+                                finally
+                                    bufferedStream.close()
                         buffers += ((buffer.uri, myBuffer))
                         myBuffer
                     case Some((uri, buffer)) => buffer
@@ -425,14 +434,13 @@ object GLTF:
             size        = bufferView.byteLength, 
             stride      = stride,
             `type`      = AttribType.fromGL(accessor.componentType),
-            mode        = mode,
             normalized  = accessor.normalized)
     
 
     private def parseGLTFsampler(
         sampler:        Wrapper.Sampler
     )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Sampler = 
-        val magFiler = sampler.magFilter
+        val magFiler = sampler.magFilter 
         val minFilter= sampler.minFilter
         new Sampler(
             magFilter = magFiler,
@@ -470,13 +478,22 @@ object GLTF:
             case e: IOException                     => throw new FileNotFoundException
         finally
             stream.close()
+        
+        val magFiler = if sampler == None then 0x2601 else sampler.get.magFilter
+        val minFilter= if sampler == None then 0x2601 else sampler.get.minFilter
 
         new Texture(
-            sampler = (sampler match
-                case None => None 
-                case Some(sampler) => Some(parseGLTFsampler(sampler))),
-            coord = coord,
-            buffer = buf)
+            buffer      = buf,
+            coord       = coord,
+            
+            imageWidth  = decoder.getWidth,
+            imageHeight = decoder.getHeight,
+
+            magFilter   = if sampler == None || sampler.get.magFilter == None then 0x2601 else sampler.get.magFilter.get,
+            minFilter   = if sampler == None || sampler.get.minFilter == None then 0x2601 else sampler.get.minFilter.get,
+            wrapS = if sampler == None then 10497 else sampler.get.wrapS,
+            wrapT = if sampler == None then 10497 else sampler.get.wrapT
+        )
         
 
     @throws[NoSuchElementException]
@@ -484,17 +501,26 @@ object GLTF:
     private def parseGLTFmaterial(
         material:       Wrapper.Material
     )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Material = 
-        val pbr     = material.pbrMetallicRoughness
+        val pbr = material.pbrMetallicRoughness
         val normals = material.normalTexture
         val occlusion=material.occlusionTexture
         val emissive= material.emissiveTexture
+
             
-        
         new se.lth.cs.student.battle3d.rsc.Material(
-            pbr             = None, //TODO: implement PBR
+            metallicRoughnessTexture = (pbr match
+                case None       => None
+                case Some(pbr)  => pbr.metallicRoughnessTexture match
+                    case None           => None
+                    case Some(texture)  => Some(parseGLTFtexture(texture))),
+            baseColorTexture = (pbr match
+                case None       => None
+                case Some(pbr)  => pbr.baseColorTexture match
+                    case None           => None
+                    case Some(texture)  => Some(parseGLTFtexture(texture))),
             normals         = (normals match
                 case None           => None
-                case Some(normals)    => Some(parseGLTFtexture(normals))),
+                case Some(normals)  => Some(parseGLTFtexture(normals))),
             occlusion       = (occlusion match
                 case None           => None
                 case Some(occlusion)=> Some(parseGLTFtexture(occlusion))),
@@ -502,12 +528,17 @@ object GLTF:
                 case None           => None
                 case Some(emissive) => Some(parseGLTFtexture(emissive))),
 
+            
             normalScale         = if normals == None then 0 else normals.get.scale,
             occlusionStrength   = if occlusion==None then 0 else occlusion.get.strength,
             emissiveFactor      = material.emissiveFactor,
             alphaMode           = material.alphaMode,
             alphaCutoff         = material.alphaCutoff,
-            doubleSided         = material.doubleSided
+            doubleSided         = material.doubleSided,
+
+            baseColorFactor  = if pbr == None then Vec4(Array.fill[Float](4)(1)) else pbr.get.baseColorFactor,
+            metallicFactor   = if pbr == None then 1.0f                          else pbr.get.metallicFactor,
+            roughnessFactor  = if pbr == None then 1.0f                          else pbr.get.roughnessFactor,
         )
 
 
@@ -544,25 +575,26 @@ object GLTF:
             Wrapper.GLTFbase.getGLTFObject(attributes,"accessor","NORMAL") match
                 case Failure(exception) => 
                 case Success(accessor)  => 
-                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "normals", mode))
+                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "normals", buffers))
             Wrapper.GLTFbase.getGLTFObject(attributes,"accessor","TEXCOORD_0") match
                 case Failure(exception) => 
                 case Success(accessor)  => 
-                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "textures", mode))
+                    vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "textures", buffers))
             
             val indicesAccessor  = Wrapper.GLTFbase.getGLTFObject(mesh.base,"accessor","indices") match
                 case Failure(exception) => None
-                case Success(accessor)  => Some(parseAccessor(new Wrapper.Accessor(accessor), "indices", mode))
+                case Success(accessor)  => Some(parseAccessor(new Wrapper.Accessor(accessor), "indices"))
             val materials        = primitive.material
             
-            vertexAccessors += (parseAccessor(positionsAccessor, "positions", mode, buffers))
+            vertexAccessors += (parseAccessor(positionsAccessor, "positions", buffers))
                 
             Mesh(
                 vertexAccessors.toSeq, 
                 indicesAccessor,
                 materials match
                     case None        => None
-                    case Some(value) => Some(parseGLTFmaterial(materials.get))
+                    case Some(value) => Some(parseGLTFmaterial(materials.get)),
+                mode
             )
         }
         .toVector
