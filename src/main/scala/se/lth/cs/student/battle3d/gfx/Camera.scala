@@ -19,7 +19,7 @@ object Camera:
 
     def matrix: Mat4 = Jglm.perspective( 
         fov,
-        Display.dim(0)/Display.dim(1),  //Aspect Ration width/height
+        Display.dim(0)/Display.dim(1),  //Aspect Ratio width/height
         nearPlane,                      //clip near
         farPlane)                       //clip far
         .mult(_matrix)             
