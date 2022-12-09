@@ -57,6 +57,10 @@ private class TextureAggregate private(
 ):
     //per opengl
     assert(unit < 32 + GL_TEXTURE0)
+    def bind(): Unit = 
+        GL13.glActiveTexture(unit)
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, tbo)
+
 private object TextureAggregate:
     def apply(tex: Texture): TextureAggregate = 
         GL13.glActiveTexture(tex.coord + GL_TEXTURE0)
@@ -248,7 +252,7 @@ object Renderer extends Singleton:
         val camera : Mat4 = Camera.matrix
 
         sceneGraph.foreach{ (name,model)=>
-            
+
             val matrix = model.matrix
 
             model.meshes.foreach{mesh => 
@@ -259,6 +263,8 @@ object Renderer extends Singleton:
 
                 GL20.glUniformMatrix4fv(defaultShader.getUniformLocation("model"), false, matrix.toFloatArray())
                 GL20.glUniformMatrix4fv(defaultShader.getUniformLocation("camera"), false, Camera.matrix.toFloatArray())
+
+                
                 
                 
                 mesh.ebo match
