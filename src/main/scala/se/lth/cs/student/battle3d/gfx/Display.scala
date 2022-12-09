@@ -226,8 +226,8 @@ object Display extends Singleton:
         if GLFW.glfwGetCurrentContext() == 0 then 
           Logger.printFatal("Could not make context")
         else
-          Logger.printDebug("Successfully made GL Context")
           GL.createCapabilities()
+          Logger.printDebug("Successfully made GL Context")
       
     def swapBuffers(): Unit = 
       GLFW.glfwSwapBuffers(hWindow)

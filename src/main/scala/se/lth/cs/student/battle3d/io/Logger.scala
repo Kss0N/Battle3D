@@ -1,6 +1,8 @@
 
 package se.lth.cs.student.battle3d.io
 
+import se.lth.cs.student.battle3d.main.Battle3D
+
 import java.io.{
     FileOutputStream, 
     BufferedWriter, 
@@ -103,15 +105,15 @@ case class Logger (private val filePath: String = "battle3d.log"):
     */
     def newEntry(severity: Logger.Severity, msg: String): Unit = 
         val year    = this.calendar.get(Calendar.YEAR) % 100 //Only want the last two digits because everyone may assume that we're in the 21st century
-        val month   = this.calendar.get(Calendar.MONTH)
+        val month   = this.calendar.get(Calendar.MONTH)+1 //add one so january is 1, instead of 0
         val day     = this.calendar.get(Calendar.DAY_OF_MONTH)
 
-        val hour    = this.calendar.get(Calendar.HOUR)
+        val hour    = this.calendar.get(Calendar.HOUR_OF_DAY)
         val minute  = this.calendar.get(Calendar.MINUTE)
         val second  = this.calendar.get(Calendar.SECOND)
 
-        val header = s"[${year}.${month}.${day}] $hour.$minute.$second ${Severity.bold}${severity.toString()}${Severity.unbold}"
-        val myText = severity.colorCode + msg + Severity.reset
+        val header = s"[${year}.${month}.${day}] $hour:$minute:$second ${severity.toString()} "
+        val myText = msg
         try 
             bufWriter.write(header, 0, header.length())
             bufWriter.write(myText, 0, myText.length())
@@ -119,3 +121,6 @@ case class Logger (private val filePath: String = "battle3d.log"):
         catch
             case e: IOException =>
                 //TODO: add handling for failure to log
+        finally
+            if severity == Severity.FATAL then
+                Battle3D.cleanup()

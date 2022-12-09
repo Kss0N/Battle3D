@@ -1,7 +1,5 @@
 package se.lth.cs.student.battle3d.gfx
 
-import se.lth.cs.student.battle3d.io.Display
-
 import jglm.{
     Jglm,
     Mat4,

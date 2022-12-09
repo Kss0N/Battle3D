@@ -83,9 +83,9 @@ object Configs:
                 inputStream.close()
         cfgs.toMap
 
-    def apply(key: String): String = 
+    def apply(key: String, default: String): String = 
         if myConfigs.contains(key) then 
             myConfigs(key)
         else
             Logger.printError(s"$key is not a valid config")
-            ""
+            default

@@ -1,9 +1,7 @@
 package se.lth.cs.student.battle3d.gfx
 
-
+import se.lth.cs.student.battle3d.main.Battle3D
 import se.lth.cs.student.battle3d.util.Singleton
-import se.lth.cs.student.battle3d.io.Display
-import se.lth.cs.student.battle3d.event.Event
 import se.lth.cs.student.battle3d.rsc.{
     Material,
     Mesh,
@@ -13,22 +11,25 @@ import se.lth.cs.student.battle3d.rsc.{
     Texture,
 }
 import se.lth.cs.student.battle3d.gl.{
+    ElementBuffer,
+    Shader,
+    TextureBuffer,
+    VertexArray,
+    VertexBuffer,
+}
+import se.lth.cs.student.battle3d.gl.{
     AttribType,
 }
 import scala.collection.immutable.Stream.Empty
 
 import jglm.{
+    Jglm,
     Mat4,
     Vec3,
     Vec4,
 }
 
-import se.lth.cs.student.battle3d.gl.{
-    ElementBuffer,
-    TextureBuffer,
-    VertexArray,
-    VertexBuffer,
-}
+
 import jglm.Mat
 
 import org.lwjgl.opengl.{
@@ -36,8 +37,13 @@ import org.lwjgl.opengl.{
     GL11,
     GL13,
     GL12,
+    GLUtil
 }
-import org.lwjgl.system.MemoryUtil
+import org.lwjgl.system.{
+    Callback, 
+    MemoryUtil
+}
+import se.lth.cs.student.battle3d.gl.Shader.apply
 
 
 private val GL_TEXTURE0 = 0x84C0
@@ -65,7 +71,7 @@ private object TextureAggregate:
         )
 end TextureAggregate
 
-private class MaterialAggregate private(
+private class MaterialAggregate(
     val metallicRoughnessTexture: Option[TextureAggregate], 
     val baseColorTexture:         Option[TextureAggregate],
     val normals:                  Option[TextureAggregate], 
@@ -119,7 +125,6 @@ private class MeshAggregate private(
     val ebo:        Option[ElementBuffer], 
     val mtl:        MaterialAggregate
 )
-
 private object MeshAggregate:
     
     def apply(mesh: Mesh): MeshAggregate = 
@@ -151,7 +156,9 @@ private object MeshAggregate:
                     data = indices.buffer.position(indices.offset.toInt)
                 )
                 Some(ebo)
-        //aggregate material
+        val mtl = mesh.material match
+            case None       => new MaterialAggregate(None,None,None,None,None) //TODO: Default texture
+            case Some(mtl)  => MaterialAggregate(mtl)
 
 
         new MeshAggregate(
@@ -160,10 +167,6 @@ private object MeshAggregate:
             ebo,
             null
         )
-
-        
-
-
 end MeshAggregate
 
 private class  ModelAggregate(var matrix: Mat4, val meshes: Array[MeshAggregate])
@@ -179,19 +182,8 @@ private class SceneAggegate
 
 object Renderer extends Singleton:
 
-    /** Aggregates and Replaces scenegraph with the newest one*/
-    case class AggreggateScene(val scene: Scene) extends Event.Message
-
-    /** adds a new Model Aggegate to scene*/
-    case class AggregateAndAppendModel(val model: Model) extends Event.Message
-
-    /** aggregates and upgrades a Mesh to a Model (with Unit Matrix as orgin)*/
-    case class AggregateMeshAsModel(val mesh: Mesh) extends Event.Message
-
-    /** for a certain model in the scene (given just the internal index as reference) replace it's matrix with a new one*/
-    case class ReplaceMatrix(val model: Int) extends Event.Message
-
     var sceneGraph = collection.mutable.Map.empty[String, ModelAggregate]
+    var running = false
 
     /**Generate unique identifier from name
       * 
@@ -204,38 +196,48 @@ object Renderer extends Singleton:
             myName = name + s"- $iteration"
         myName
 
+    private var debugProc : Callback = null
+    private val shaderPath = "src/rsc/shader/"
+    private var defaultShader: Shader = null
 
-    override def init(): Unit = ???
-
-    override def destroy(): Unit = ???
-
-    def loop: Unit =
+    override def init(): Unit =
+        var running = true //called first of all
         Display.associateThisThreadWithGL()
-        while(Display.isRunning) do
-            val queue = Event.getQueueNonBlocking("Renderer")
-            if queue != None then 
-                queue
-                .get
-                .dequeueAll{e => true} //everyone
-                .foreach{ e =>
-                    e match
-                        case AggreggateScene(scene)         =>
-                            sceneGraph.clear()
-                            
-                            scene.models.foreach{model =>
-                                sceneGraph(model.name) = ???
-                            }
+        debugProc = GLUtil.setupDebugMessageCallback();
+        
+        GL11.glViewport(0,0, Display.dim(0), Display.dim(1))
 
-                        case AggregateAndAppendModel(model) =>
+        defaultShader = Shader(shaderPath + "default.vert", shaderPath + "default.frag")
 
-                        case AggregateMeshAsModel(mesh)     =>
 
-                        case ReplaceMatrix(model)           => 
-                }
-            //Onto Rendering:
-            sceneGraph.foreach{ (name,model)=>
+    override def destroy(): Unit = 
+        //afterwards
+        if debugProc != null then 
+            debugProc.free()
+        var running = false //called last of all
 
+    def resizeWindow(newX: Int, newY: Int): Unit = 
+        GL11.glViewport(0,0,newX, newY)
+
+    def loop(): Unit =
+        val camera : Mat4 = Camera.matrix
+
+        sceneGraph.foreach{ (name,model)=>
+            val matrix = model.matrix
+            model.meshes.foreach{mesh => 
+
+
+                mesh.vao.bind()
+                mesh.ebo match
+                    case None       => 
+                    case Some(value)=>
+                
             }
+            
+        }
+        Display.swapBuffers()
+            
+            
             
             
             
