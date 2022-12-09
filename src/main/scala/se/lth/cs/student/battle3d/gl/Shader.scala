@@ -14,6 +14,9 @@ import java.nio.{
 
 import org.lwjgl.opengl.GL20 as GL
 import se.lth.cs.student.battle3d.io.Logger
+import java.io.BufferedReader
+import java.io.FileReader
+import java.io.File
 
 
 
@@ -36,28 +39,38 @@ object Shader:
 
     private def makeShader(`type`: Int, paths: Seq[String]): Int = 
         val content : Seq[CharSequence] = paths.map{ path => 
-            var bufferedInputStream: BufferedInputStream = null
+            var reader: BufferedReader = null
+            
             try
-                val fileInputStream = new FileInputStream(path)
-                bufferedInputStream = new BufferedInputStream(fileInputStream)
-                bufferedInputStream.readAllBytes().toString()
+                val reader = new BufferedReader(new FileReader(new File(path)))
+                var string = new java.lang.StringBuilder()
+                var line : String = null
+                while 
+                    line = reader.readLine()
+                    line != null
+                do
+                    string.append(line + "\n") 
+
+                string.toString()
+
             catch 
                 case e: IOException => 
                     Logger.printFatal("File" + path + "Does not exist")
                     ""
             finally
-                bufferedInputStream.close()
+                if reader != null then
+                    reader.close()
         }
         val shader = GL.glCreateShader(`type`)
         GL.glShaderSource(shader, content:_*)
         GL.glCompileShader(shader)
 
-        var compileParams = Array.fill[Int](1)(0)
-        GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS, IntBuffer.wrap(compileParams)); 
+        val success = GL.glGetShaderi(shader, GL.GL_COMPILE_STATUS); 
         //0 is GL_FALSE meaning the compilation failed
-        if compileParams(0) == 0 then
+        if success == 0 then
             val msg = GL.glGetShaderInfoLog(shader, 1024)
             Logger.printFatal(msg)
+            println(msg)
         shader
 
     @throws[IllegalArgumentException]
@@ -86,9 +99,8 @@ object Shader:
 
         GL.glLinkProgram(program)
 
-        var linkParams = Array.fill[Int](1)(0)
-        GL.glGetProgramiv(program, GL.GL_LINK_STATUS, IntBuffer.wrap(linkParams)); 
-        if linkParams(0) == 0 then //0 is GL_FALSE meaning the compilation failed
+        val success = GL.glGetProgrami(program, GL.GL_LINK_STATUS); 
+        if success == 0 then //0 is GL_FALSE meaning the compilation failed
             val msg = GL.glGetProgramInfoLog(program, 1024)
             Logger.printFatal(msg)
         
