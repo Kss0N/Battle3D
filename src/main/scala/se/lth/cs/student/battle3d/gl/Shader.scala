@@ -25,6 +25,9 @@ final case class Shader private (val program: Int):
         GL.glDeleteProgram(program)
     def activate(): Unit = 
         GL.glUseProgram(program)
+    
+    def getUniformLocation(name: String): Int = 
+        GL.glGetUniformLocation(this.program, name)
     //TODO: Implement
     //def isActive : Boolean =
     //

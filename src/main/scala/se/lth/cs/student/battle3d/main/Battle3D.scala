@@ -42,7 +42,12 @@ object Battle3D:
             Renderer.init()
 
             val (scene, scenes) = GLTF.parseScenes("src/rsc/models/mech_drone/scene.gltf")
-            Logger.printDebug("Parsed Scene: " + scene.get.toString())
+            if scene == None then 
+                Logger.printFatal("Failed to parse scene")
+            else
+                Logger.printDebug("Parsed Scene: " + scene.get.toString())
+                
+            Renderer.parse(scene.get)
             
             while Display.isRunning do 
                 Renderer.loop()

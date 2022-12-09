@@ -9,7 +9,12 @@ uniform mat4 cam;
 out vec2 texCoord;
 out vec3 normal;
 
-uniform mat4 model;
+uniform mat4 model = mat4(  
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    0,0,0,1
+);
 uniform mat4 camera;
 
 

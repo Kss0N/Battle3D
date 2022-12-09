@@ -2,6 +2,7 @@ package se.lth.cs.student.battle3d.gfx
 
 import se.lth.cs.student.battle3d.main.Battle3D
 import se.lth.cs.student.battle3d.util.Singleton
+import se.lth.cs.student.battle3d.io.Logger
 import se.lth.cs.student.battle3d.rsc.{
     Material,
     Mesh,
@@ -14,6 +15,7 @@ import se.lth.cs.student.battle3d.gl.{
     ElementBuffer,
     Shader,
     TextureBuffer,
+    Topology,
     VertexArray,
     VertexBuffer,
 }
@@ -35,8 +37,9 @@ import jglm.Mat
 import org.lwjgl.opengl.{
     GL45,
     GL11,
-    GL13,
     GL12,
+    GL13,
+    GL20,
     GLUtil
 }
 import org.lwjgl.system.{
@@ -123,7 +126,12 @@ private class MeshAggregate private(
     val vao:        VertexArray,
     val vbo:        Vector[VertexBuffer], 
     val ebo:        Option[ElementBuffer], 
-    val mtl:        MaterialAggregate
+    val mtl:        MaterialAggregate,
+    val mode:       Topology = Topology.TRIANGLES,
+    
+    val indexCount: Int = 0,
+    val eboType:    AttribType = AttribType.UNSIGNED_INT,
+    val vertexCount:Int = 0
 )
 private object MeshAggregate:
     
@@ -146,8 +154,8 @@ private object MeshAggregate:
             vao.setVertexAttribFormat(ix, accessor.size.toInt, accessor.`type`, accessor.normalized, accessor.offset.toInt)
         val vbos = Vector(vbo)
 
-        val ebo = mesh.indexAccessor match
-            case None           => None
+        val (ebo, eboCount, eboType) = mesh.indexAccessor match
+            case None           => (None,0,AttribType.UNSIGNED_INT)
             case Some(indices)  =>
                 val ebo = ElementBuffer()
                 ebo.bufferSubData(
@@ -155,7 +163,8 @@ private object MeshAggregate:
                     size = indices.size,
                     data = indices.buffer.position(indices.offset.toInt)
                 )
-                Some(ebo)
+                (Some(ebo), indices.count.toInt, indices.`type`)
+
         val mtl = mesh.material match
             case None       => new MaterialAggregate(None,None,None,None,None) //TODO: Default texture
             case Some(mtl)  => MaterialAggregate(mtl)
@@ -165,7 +174,12 @@ private object MeshAggregate:
             vao,
             vbos,
             ebo,
-            null
+            mtl,
+            mesh.mode,
+
+            eboCount,
+            eboType,
+            mesh.vertexAccessors(0).count
         )
 end MeshAggregate
 
@@ -200,12 +214,22 @@ object Renderer extends Singleton:
     private val shaderPath = "src/rsc/shader/"
     private var defaultShader: Shader = null
 
+    def parse(scene: Scene) : Unit = 
+        sceneGraph = collection.mutable.Map.empty
+
+        scene.models.foreach{ model =>
+            Logger.printDebug("added model: " + model.name)
+            sceneGraph += ((model.name, ModelAggregate(model)))
+        }
+
     override def init(): Unit =
         var running = true //called first of all
         Display.associateThisThreadWithGL()
         debugProc = GLUtil.setupDebugMessageCallback();
         
         GL11.glViewport(0,0, Display.dim(0), Display.dim(1))
+        GL11.glEnable(GL11.GL_DEPTH_TEST)
+        GL11.glDepthFunc(GL11.GL_LESS)
 
         defaultShader = Shader(shaderPath + "default.vert", shaderPath + "default.frag")
 
@@ -220,17 +244,26 @@ object Renderer extends Singleton:
         GL11.glViewport(0,0,newX, newY)
 
     def loop(): Unit =
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT)
         val camera : Mat4 = Camera.matrix
 
         sceneGraph.foreach{ (name,model)=>
+            
             val matrix = model.matrix
+
             model.meshes.foreach{mesh => 
-
-
                 mesh.vao.bind()
+
+
+                defaultShader.activate()
+
+                GL20.glUniformMatrix4fv(defaultShader.getUniformLocation("model"), false, matrix.toFloatArray())
+                GL20.glUniformMatrix4fv(defaultShader.getUniformLocation("camera"), false, Camera.matrix.toFloatArray())
+                
+                
                 mesh.ebo match
-                    case None       => 
-                    case Some(value)=>
+                    case None       => GL11.glDrawArrays(mesh.mode.get, 0, mesh.vertexCount)
+                    case Some(value)=> GL11.glDrawElements(mesh.mode.get, mesh.indexCount, mesh.eboType.get, 0)
                 
             }
             
