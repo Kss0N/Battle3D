@@ -79,6 +79,9 @@ private object Wrapper :
             base.optInt("byteOffset", 0)
             
         @throws[NoSuchElementException]
+        def count: Int = 
+            try base.getInt("count") catch case _ => throw new NoSuchElementException("count i missing from accessor")
+        @throws[NoSuchElementException]
         def componentType: Int = 
             try base.getInt("componentType") catch case _ => throw new NoSuchElementException("componentType is missing")
         
@@ -434,6 +437,7 @@ object GLTF:
             offset      = accessor.byteOffset, 
             size        = bufferView.byteLength, 
             stride      = stride,
+            count       = accessor.count,
             `type`      = AttribType.fromGL(accessor.componentType),
             normalized  = accessor.normalized)
     
