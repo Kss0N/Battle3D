@@ -117,14 +117,7 @@ private object Callbacks:
               y += 1
           case _ => ()
           
-          if x == 0 && y == 0 && z == 0 then 
-            keyDownTimeMS = 0
-          else if keyDownTimeMS == 0 then 
-            keyDownTimeMS = System.currentTimeMillis()
-          //ms
-          val dt = scala.math.max(System.currentTimeMillis() - keyDownTimeMS, accelerationMaxTime) //don't accelerate any more after 5 seconds
-          val speed = acceleration*dt*1000.toFloat + 1.0f
-          Camera.move(Vec3(x,y,z).normalize().times(speed))
+          Camera.move(Vec3(x,y,z).normalize())
         
     final class MouseButton     extends GLFWMouseButtonCallback:
       override def invoke(window: Long, button: Int, action: Int, mods: Int): Unit = 
