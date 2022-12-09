@@ -380,7 +380,7 @@ object GLTF:
             accessor:   Wrapper.Accessor, 
             name:       String, 
             buffers:    ArrayBuffer[(String, ByteBuffer)]   = ArrayBuffer.empty
-    )(using gltf: JSONObject): se.lth.cs.student.battle3d.rsc.Accessor =
+    )(using gltf: JSONObject, folder: String): se.lth.cs.student.battle3d.rsc.Accessor =
         val bufferView = Try{accessor.bufferView.get} match
             //NOTE: It is not an error if bufferView doesn't exist, it just means that the accessor is a sparse accessor
             //The sparse accessor should then be translated into a regular accessor if possible
@@ -404,12 +404,13 @@ object GLTF:
                             else 
                                 var bufferedStream : BufferedInputStream  = null 
                                 try
-                                    val fileStream  = new FileInputStream(buffer.uri)
+                                    val fileStream  = new FileInputStream(folder + buffer.uri)
                                     bufferedStream = new BufferedInputStream(fileStream)
                                     val buf = ByteBuffer.wrap(bufferedStream.readAllBytes())
                                     buf
                                 finally
-                                    bufferedStream.close()
+                                    if bufferedStream != null then
+                                        bufferedStream.close()
                         buffers += ((buffer.uri, myBuffer))
                         myBuffer
                     case Some((uri, buffer)) => buffer
@@ -546,7 +547,7 @@ object GLTF:
     @throws[FileNotFoundException]
     private def parseGLTFmesh(
         mesh:           Wrapper.Mesh
-    )(using gltf: JSONObject): Vector[se.lth.cs.student.battle3d.rsc.Mesh] = 
+    )(using gltf: JSONObject, folder: String): Vector[se.lth.cs.student.battle3d.rsc.Mesh] = 
         val b =0
         /** Persistant storage for all primitives: 
           * There is the (highly likely) possibility that multiple primitives are stored in the same buffer,
@@ -605,7 +606,7 @@ object GLTF:
     private def parseToModel(
         mesh:           Wrapper.Mesh,
         matrix:         Mat4,
-    )(using gltf: JSONObject): Model =
+    )(using gltf: JSONObject, folder: String): Model =
         val name = 
             val myName = mesh.name
             if(myName == "" || Renderer.sceneGraph.contains(myName)) then 
@@ -621,7 +622,7 @@ object GLTF:
         parentMatrix:   Mat4, 
         gltfScene:      Wrapper.Scene, 
         myScene:        se.lth.cs.student.battle3d.rsc.Scene
-    )(using gltf: JSONObject): Unit = 
+    )(using gltf: JSONObject, folder: String): Unit = 
             val matrix  = parentMatrix.mult(node.matrix)
             val mesh    = node.mesh
             if mesh != None then 
@@ -640,13 +641,21 @@ object GLTF:
       * 
       * NOTE: `(legal JSON-syntax NAND legal GLTF-semantics) => parsing failure`
       *
-      * @param data GLTF input stream
+      * @param startFile  file path to be read and parsed
       * @return list of valid Models, all of them being positioned at orgin, being unrotated
       */
     @throws[Nothing]
-    def parseModels(input: BufferedInputStream):    Vector[Model] =
+    def parseModels(startFile: String):    Vector[Model] =
         val beginTime = System.currentTimeMillis()
+
+        given path : String = 
+            var path = startFile
+            while(!path.isEmpty && path.last != '/') do path = path.dropRight(1)
+            path
+
+        var input: BufferedInputStream = null
         try 
+            input = new BufferedInputStream(new FileInputStream(startFile))
             given json: JSONObject = 
                 try JSONObject(input.readAllBytes().map{_.toChar}.mkString) 
                 catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in datastream")
@@ -675,19 +684,31 @@ object GLTF:
             case e: FileNotFoundException   =>
                 Logger.printWarn("File currently not found, parsing aborted:" + e.getMessage())
                 Vector.empty
+        finally
+            if input != null then
+                input.close()
 
     
     /** Parses data stream adhering to GLTF-standard to 1 or more scenes
       * 
       * NOTE: `(legal JSON-syntax NAND legal GLTF-semantics) => parsing failure`
       *
-      * @param data GLTF input stream
+      * @param startFile file to be read and parsed
       * @return Optional Scene that is decided as the first scene and all other scenes
       */
     @throws[Nothing]
-    def parseScenes(input:    BufferedInputStream): (Option[Scene], Vector[Scene]) =
+    def parseScenes(startFile: String): (Option[Scene], Vector[Scene]) =
         val beginTie = System.currentTimeMillis()
+
+        given path : String = 
+            var path = startFile
+            while(!path.isEmpty && path.last != '/') do path = path.dropRight(1)
+            path
+
+        var input : BufferedInputStream = null
         try 
+            val file = FileInputStream(startFile)
+            input = BufferedInputStream(file)
             given json: JSONObject = try JSONObject(input.readAllBytes().map{_.toChar}.mkString) catch case _ => throw new IllegalArgumentException("Illegal JSON-syntax in data stream")
             val jsonScene = json.getJSONArray("scenes")
 
@@ -725,4 +746,7 @@ object GLTF:
             case e: FileNotFoundException   =>
                 Logger.printWarn("File currently not found, parsing aborted:" + e.getMessage())
                 (None,Vector.empty)
+        finally
+            if input != null then
+                input.close()
 
