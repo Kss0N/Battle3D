@@ -17,7 +17,6 @@ import java.nio.ByteBuffer
   * @param size         of data (in bytes)
   * @param stride       of each data point (in bytes)
   * @param type         dataType of data, default: Float
-  * @param mode         (In case of vertices) mode of drawing
   * @param normalized   if data will be normalized, default: no
   */
 final case class Accessor(
@@ -26,6 +25,7 @@ final case class Accessor(
     val offset      : Long, 
     val size        : Long,
     val stride      : Int,
+    val count       : Int,
     val `type`      : AttribType = AttribType.FLOAT,
     val normalized  : Boolean = false
 )
