@@ -28,13 +28,6 @@ final case class Shader private (val program: Int):
     
     def getUniformLocation(name: String): Int = 
         GL.glGetUniformLocation(this.program, name)
-    //TODO: Implement
-    //def isActive : Boolean =
-    //
-    //    gl.glGetInteger64v(GL3ES3.GL_CURRENT_PROGRAM)
-    //    false
-    override def finalize(): Unit = 
-        this.destroy()
         
 
 
