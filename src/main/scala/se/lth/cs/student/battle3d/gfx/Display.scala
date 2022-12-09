@@ -1,9 +1,8 @@
-package se.lth.cs.student.battle3d.io 
+package se.lth.cs.student.battle3d.gfx 
 
-import se.lth.cs.student.battle3d.main.configurations as cfgs
+import se.lth.cs.student.battle3d.main.Configs
 import se.lth.cs.student.battle3d.util.Singleton
-import se.lth.cs.student.battle3d.event.ThreadQueue as TQ
-import se.lth.cs.student.battle3d.gfx.Renderer
+import se.lth.cs.student.battle3d.io.Logger
 
 import org.lwjgl.opengl.GL
 
@@ -63,11 +62,10 @@ private object Callbacks:
 
     final class Error extends GLFWErrorCallback:
         override def invoke(error: Int, pDesc: Long): Unit = 
-            val description: String = MemoryUtil.memByteBuffer(pDesc, 1024)
-                .array()
-                .map{_.asInstanceOf[Char]}
-                .toString()
-            Logger.printFatal(s"GLFW Error $error: description")
+            
+            val description: String = GLFWErrorCallback.getDescription(pDesc)
+                
+            Logger.printFatal(s"GLFW Error $error: $description")
     
     
     final class KeysInput       extends GLFWKeyCallback:
@@ -80,7 +78,7 @@ private object Callbacks:
       var z = 0
       override def invoke(window: Long, keyCode: Int, scanCode: Int, action: Int, mods: Int): Unit =
         val inputState = InputState(action, mods)
-        keyCode match
+        keyCode.toChar match
 
           case 'W'|'w' => //Forward
             if inputState.isPressed then 
@@ -117,6 +115,7 @@ private object Callbacks:
               y -= 1
             if inputState.isRelease then 
               y += 1
+          case _ => ()
           
           if x == 0 && y == 0 && z == 0 then 
             keyDownTimeMS = 0
@@ -125,23 +124,22 @@ private object Callbacks:
           //ms
           val dt = scala.math.max(System.currentTimeMillis() - keyDownTimeMS, accelerationMaxTime) //don't accelerate any more after 5 seconds
           val speed = acceleration*dt*1000.toFloat + 1.0f
-          
-          //FIXME: discrepency in system
-          TQ.getQueue("Renderer").enqueue(Renderer.MoveCamera(Vec3(x,y,z).normalize().times(speed)))
-          TQ.releaseQueue("Renderer")
+          Camera.move(Vec3(x,y,z).normalize().times(speed))
         
     final class MouseButton     extends GLFWMouseButtonCallback:
       override def invoke(window: Long, button: Int, action: Int, mods: Int): Unit = 
         val inputState = InputState(action, mods)
         if button == GLFW.GLFW_MOUSE_BUTTON_LEFT && !inputState.hasShift then 
           Display.freeMode = false
-        else
+          GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_HIDDEN)
+        else  
           Display.freeMode = true
+          GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL)
+
 
         
     final class CursorPos       extends GLFWCursorPosCallback:
       override def invoke(window: Long, xpos: Double, ypos: Double): Unit = 
-        val q = TQ.getQueue("Renderer")
         val angleX = (xpos.toFloat - (Display.dim(0)/2))/Display.dim(0)
         val angleY = (ypos.toFloat - (Display.dim(1)/2))/Display.dim(1)
         
@@ -150,9 +148,8 @@ private object Callbacks:
           !Display.freeMode
         then 
           GLFW.glfwSetCursorPos(window, Display.dim(0)/2, Display.dim(1)/2)
-          q.enqueue(Renderer.RotateCamera(angleX,'X'))
-          q.enqueue(Renderer.RotateCamera(angleY,'Y'))
-          TQ.releaseQueue("Renderer")
+          Camera.rotateX(angleX)
+          Camera.rotateY(angleY)
     end CursorPos
         
     final class CursorEnter     extends GLFWCursorEnterCallback:
@@ -163,7 +160,7 @@ private object Callbacks:
     final class FramebufferSize extends GLFWFramebufferSizeCallback:
 
       override def invoke(window: Long, width: Int, height: Int): Unit = 
-        TQ.getQueue("Renderer").enqueue(new Renderer.ResizeWindow(width, height))
+        Renderer.resizeWindow(width, height)
 
     final class GetFocus extends GLFWWindowFocusCallback:
       override def invoke(window: Long, focused: Boolean): Unit = 
@@ -184,46 +181,65 @@ private object Callbacks:
 object Display extends Singleton:
     
 
-    GLFW.glfwInit()
+    
     /** Handle to the window object*/
     private var hWindow = 0L 
-    GLFW.glfwSetErrorCallback(new Callbacks.Error)
+    
 
     var freeMode: Boolean = true
 
 
     def init(): Unit = 
+        if !GLFW.glfwInit() then 
+          Logger.printFatal("Could not init GLFW library")
+        else Logger.printDebug("GLFW Init")
+        GLFW.glfwSetErrorCallback(new Callbacks.Error)
+
         GLFW.glfwDefaultWindowHints()
         GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, 1)
         GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, 1)
         //Use OpenGL 4.5 Core
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 4)
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 5)
-        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE, 
-          if cfgs("debug").toLowerCase() == "true" then 
-            GLFW.GLFW_OPENGL_DEBUG_CONTEXT 
-          else 
-            GLFW.GLFW_OPENGL_CORE_PROFILE)
+        GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE,  GLFW.GLFW_OPENGL_CORE_PROFILE)
 
-        hWindow = GLFW.glfwCreateWindow(cfgs("width").toInt, cfgs("height").toInt, cfgs("title"), 0, 0)
+        hWindow = GLFW.glfwCreateWindow(
+          Configs("width", "800").toInt, 
+          Configs("height", "800").toInt, 
+          Configs("title", "render"), 0, 0)
         if (hWindow == 0L) then 
             Logger.printFatal("Could not create window")
+        else Logger.printDebug("Created Window")
 
         GLFW.glfwSetKeyCallback         (hWindow, new Callbacks.KeysInput)
         GLFW.glfwSetCursorEnterCallback (hWindow, new Callbacks.CursorEnter)
         GLFW.glfwSetCursorPosCallback   (hWindow, new Callbacks.CursorPos)
         GLFW.glfwSetWindowFocusCallback (hWindow, new Callbacks.GetFocus)
+        GLFW.glfwSetMouseButtonCallback (hWindow, new Callbacks.MouseButton)
+        Logger.printDebug("Linked Callbacks")
 
 
         
     def associateThisThreadWithGL(): Unit = 
         GLFW.glfwMakeContextCurrent(hWindow)
-        GL.createCapabilities()
+        
+        if GLFW.glfwGetCurrentContext() == 0 then 
+          Logger.printFatal("Could not make context")
+        else
+          Logger.printDebug("Successfully made GL Context")
+          GL.createCapabilities()
       
     def swapBuffers(): Unit = 
       GLFW.glfwSwapBuffers(hWindow)
 
-    def isRunning: Boolean = GLFW.glfwWindowShouldClose(hWindow)
+    def isRunning: Boolean = 
+      val is = GLFW.glfwWindowShouldClose(hWindow)
+      if(is) then Logger.printDebug("Stopped Running")
+      !is
+
+    def poll(): Unit = 
+      GLFW.glfwPollEvents()
+      
 
     def dim: (Int, Int) = 
       val width = Array.fill[Int](1)(0)
@@ -232,6 +248,17 @@ object Display extends Singleton:
       (width(0), height(0))
         
     def destroy(): Unit = 
-      glfwFreeCallbacks(hWindow)
-      GLFW.glfwDestroyWindow(hWindow)
+
+      if (hWindow != 0L)
+
+          while Renderer.running do () //wait such that access violations are not caused
+          GLFW.glfwDestroyWindow(hWindow)
+
+          glfwFreeCallbacks(hWindow)
+      val cb = GLFW.glfwSetErrorCallback(null)
+      if cb != null then cb.free()
+
       GLFW.glfwTerminate()
+
+
+      
