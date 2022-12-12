@@ -5,7 +5,7 @@ import org.lwjgl.opengl.{GL45 as GL4}
 
 import se.lth.cs.student.battle3d.gl.Target
 
-final case class ElementBuffer private(val ebo: Int) extends GLBuffer(ebo):
+final case class ElementBuffer private(private[gl] val ebo: Int) extends GLBuffer(ebo):
     override val target: Target = Target.ELEMENT_ARRAY_BUFFER
 
 object ElementBuffer:

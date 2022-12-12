@@ -19,7 +19,7 @@ import java.nio.IntBuffer
   * @constructor creates a VertexArray object from OpenGL Vertex Array Object Reference
   * @param vao   object reference, the real object is stored on the openGL side of the interface
   */
-final case class VertexArray(val vao: Int):
+final case class VertexArray(private[gl] val vao: Int):
     import VertexArrays.* 
 
     def bind(): Unit =

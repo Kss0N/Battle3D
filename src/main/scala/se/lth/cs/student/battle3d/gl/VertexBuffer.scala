@@ -7,7 +7,7 @@ import se.lth.cs.student.battle3d.gl.Target
 
 import java.nio.Buffer
 
-final case class VertexBuffer private(val vbo: Int) extends GLBuffer(vbo):
+final case class VertexBuffer private(private[gl] val vbo: Int) extends GLBuffer(vbo):
     override val target = Target.ARRAY_BUFFER
     
 
