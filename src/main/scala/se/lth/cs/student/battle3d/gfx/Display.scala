@@ -115,6 +115,9 @@ private object Callbacks:
               y -= 1
             if inputState.isRelease then 
               y += 1
+
+          case 'R'|'r' => 
+            Renderer.reloadShader();
           case _ => ()
           
           Camera.move(Vec3(x,y,z).normalize())
@@ -153,7 +156,7 @@ private object Callbacks:
     final class FramebufferSize extends GLFWFramebufferSizeCallback:
 
       override def invoke(window: Long, width: Int, height: Int): Unit = 
-        Renderer.resizeWindow(width, height)
+        Renderer.resizeViewport(width, height)
 
     final class GetFocus extends GLFWWindowFocusCallback:
       override def invoke(window: Long, focused: Boolean): Unit = 
@@ -195,6 +198,8 @@ object Display extends Singleton:
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 4)
         GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 5)
         GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_PROFILE,  GLFW.GLFW_OPENGL_CORE_PROFILE)
+        
+        GLFW.glfwWindowHint(GLFW.GLFW_CONTEXT_DEBUG, GLFW.GLFW_TRUE)  
 
         hWindow = GLFW.glfwCreateWindow(
           Configs("width", "800").toInt, 
