@@ -118,6 +118,7 @@ case class Logger (private val filePath: String = "battle3d.log"):
             bufWriter.write(header, 0, header.length())
             bufWriter.write(myText, 0, myText.length())
             bufWriter.newLine()
+            bufWriter.flush()
         catch
             case e: IOException =>
                 //TODO: add handling for failure to log
