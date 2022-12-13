@@ -9,18 +9,19 @@ import jglm.{
 
 
 object Camera:
-    private var _matrix: Mat4 = new Mat4()
+    private var _matrix: Mat4 = new Mat4(1.0f)
 
     var fov = (45.0f * math.Pi/180).toFloat
     var nearPlane = 0.1f
     var  farPlane = 100.0f
 
-    def matrix: Mat4 = Jglm.perspective( 
-        fov,
-        Display.dim(0)/Display.dim(1),  //Aspect Ratio width/height
-        nearPlane,                      //clip near
-        farPlane)                       //clip far
-        .mult(_matrix)             
+    def matrix: Mat4 = 
+        Jglm.perspective( 
+            fov,
+            Display.dim(0)/Display.dim(1),  //Aspect Ratio width/height
+            nearPlane,                      //clip near
+            farPlane)                       //clip far
+            .mult(_matrix)             
 
     def move(pos : Vec3): Unit = 
         _matrix = _matrix.mult(Mat4.translate(pos))
