@@ -61,10 +61,16 @@ private object Wrapper :
     object GLTFbase:
 
         def getGLTFObject(base: JSONObject, `type`: String, name: String = "")(using gltf: JSONObject): Try[JSONObject] =
-            Try{gltf.getJSONArray(
-                `type` match
+            Try{gltf.getJSONArray(`type` match
                     case "mesh" => "meshes"
-                    case _      => `type`+"s").getJSONObject(base.getInt(if name == "" then `type` else name))}
+                    case _      => `type`+"s"
+                )
+                .getJSONObject(base.getInt(if name == "" then 
+                    `type` 
+                else 
+                    name
+                )) 
+            }
     end GLTFbase
 
     //see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-accessor
@@ -254,7 +260,7 @@ private object Wrapper :
     object Mesh:
         
         //see: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-mesh-primitive
-        class Primitive(protected override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
+        class Primitive(override val base: JSONObject)(using gltf: JSONObject) extends GLTFbase(base):
             
             @throws[NoSuchElementException]
             def attributes: JSONObject = 
@@ -304,11 +310,9 @@ private object Wrapper :
                         case Success(values)    => Vec3(values)
 
                     Mat4.translate(translation)
-                    .mult(rotation.toMatrix())
-                    .mult{
-                        val matrix = new Mat4()
-                        matrix.setDiagonal(scale)
-                        matrix}                       
+                        .mult(rotation.toMatrix()
+                            .mult{new Mat4(Vec4(scale,1))})
+                                           
                     
         def children: Vector[Node] =  
             Try{
@@ -578,7 +582,7 @@ object GLTF:
             //if there are no normals, the lighting will appear all messed up 
             //And if there are no textures, then there might as well be some default texture.
             Wrapper.GLTFbase.getGLTFObject(attributes,"accessor","NORMAL") match
-                case Failure(exception) => 
+                case Failure(exception) =>
                 case Success(accessor)  => 
                     vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "normals", buffers))
             Wrapper.GLTFbase.getGLTFObject(attributes,"accessor","TEXCOORD_0") match
@@ -586,7 +590,7 @@ object GLTF:
                 case Success(accessor)  => 
                     vertexAccessors += (parseAccessor(new Wrapper.Accessor(accessor), "textures", buffers))
             
-            val indicesAccessor  = Wrapper.GLTFbase.getGLTFObject(mesh.base,"accessor","indices") match
+            val indicesAccessor  = Wrapper.GLTFbase.getGLTFObject(primitive.base,"accessor","indices") match
                 case Failure(exception) => None
                 case Success(accessor)  => Some(parseAccessor(new Wrapper.Accessor(accessor), "indices"))
             val materials        = primitive.material
@@ -613,9 +617,11 @@ object GLTF:
     )(using gltf: JSONObject, folder: String): Model =
         val name = 
             val myName = mesh.name
-            if(myName == "" || Renderer.sceneGraph.contains(myName)) then 
-                Renderer.generateUID(if myName == "" then "model" else myName)
-            else myName
+            //TODO: With the actual renderer
+            //if(myName == "" || Renderer.sceneGraph.contains(myName)) then 
+            //    //Renderer.generateUID(if myName == "" then "model" else myName)
+            //else myName
+            myName
         new Model(name, matrix, parseGLTFmesh(mesh))
 
 
@@ -673,7 +679,7 @@ object GLTF:
                 case Success(mesh)      => Some(new Wrapper.Mesh(mesh))
             }
             .filter{_!=None}
-            .map{mesh => parseToModel(mesh.get, new Mat4)} 
+            .map{mesh => parseToModel(mesh.get, new Mat4(1.0f))} 
             .toVector
         catch 
             case e: IllegalArgumentException =>
@@ -725,7 +731,7 @@ object GLTF:
             .map{json => 
                 val wrapperScene = Wrapper.Scene(json.get)
                 val scene = new Scene(ArrayBuffer.empty)
-                wrapperScene.nodes.foreach{parseGLTFnode(_, new Mat4, wrapperScene, scene )}
+                wrapperScene.nodes.foreach{parseGLTFnode(_, new Mat4(1.0f), wrapperScene, scene )}
                 scene
             }
             .toVector
