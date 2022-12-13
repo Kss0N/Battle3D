@@ -1,6 +1,6 @@
 <settings>
     <debug>true</debug>
-    <width>800</width>
-    <height>800</height>
+    <width>1000</width>
+    <height>1000</height>
     <title>Render3D</title>
 </settings>
