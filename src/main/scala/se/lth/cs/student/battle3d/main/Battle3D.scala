@@ -32,26 +32,31 @@ object Battle3D:
         try
             Logger.printInfo("Starting Session")
             
-            Logger.printDebug("reading configs")
+
+
             Configs.myConfigs = Configs.fromFile()
+            Logger.printDebug("configs red")
             
-            Logger.printDebug("Init display")
             Display.init()
-            Logger.printDebug("Init Rendering")
+            Logger.printDebug("Display init:ed")
 
             Renderer.init()
+            Logger.printDebug("Renderer init:ed")
 
-            val (scene, scenes) = GLTF.parseScenes("src/rsc/models/mech_drone/scene.gltf")
+
+            val (scene, scenes) = GLTF.parseScenes("src/rsc/models/the_utah_teapot/scene.gltf")
             if scene == None then 
                 Logger.printFatal("Failed to parse scene")
             else
                 Logger.printDebug("Parsed Scene: " + scene.get.toString())
-                
             Renderer.parse(scene.get)
             
+
             while Display.isRunning do 
-                Renderer.loop()
                 Display.poll()
+                Renderer.render()
+                
+                
 
             cleanup()
         finally
