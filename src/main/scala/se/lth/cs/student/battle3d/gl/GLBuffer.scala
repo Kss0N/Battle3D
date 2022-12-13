@@ -47,8 +47,15 @@ abstract class GLBuffer protected(private val obj: Int):
       * @param data  to be buffered
       * @param usage hint to the driver on how the buffer is supposed be used in order to optimize performance
       */
-    def bufferData(size: Long, data: ByteBuffer, usage: Usage = Usage(Usage.STATIC, Usage.DRAW)): Unit =
-        GL.nglNamedBufferData(this.obj, size, MemoryUtil.memAddress(data), usage.`val`)
+    def bufferData[T <: AnyVal](size: Long, data: Array[T], usage: Usage = Usage(Usage.STATIC, Usage.DRAW)): Unit =
+      if data == null then 
+        GL.nglNamedBufferData(obj, size, 0, usage.get)
+      else data match
+        case d: Array[Float]=> GL.glNamedBufferData(obj, d, usage.get)
+        case d: Array[Int]  => GL.glNamedBufferData(obj, d, usage.get)
+        case d: Array[Long] => GL.glNamedBufferData(obj, d, usage.get)
+        case _ => throw new IllegalArgumentException("data: Array has illegal type")
+
 
     /** Buffers part of data from application to OpenGL driver
       * After call, the driver decdes where the data is located, it can either be in RAM or GPU memory  
@@ -62,7 +69,9 @@ abstract class GLBuffer protected(private val obj: Int):
       * @param data   to be transfered to
       */
     def bufferSubData(offset: Long, size:Long, data:ByteBuffer): Unit =
-        GL.nglNamedBufferSubData(this.obj, offset, size, MemoryUtil.memAddress(data))   
+      if data.isDirect() then
+        GL.glNamedBufferSubData(this.obj, offset, data)   
+      else throw new IllegalArgumentException("ByteBuffer has to be direct")
 
     /** creates and initializes a buffer object's immutable data store 
       * 
@@ -172,10 +181,10 @@ abstract class GLBuffer protected(private val obj: Int):
       * After call, `this` GLBuffer instance is invalid
       */
     def delete(): Unit =
-        val b = Array.fill[Int](1)(this.obj)
-        GL15.glDeleteBuffers(IntBuffer.wrap(b))
-    
-    override def finalize(): Unit = this.delete()
+        GL15.glDeleteBuffers(obj)
+
+    def getParameter(name: Int): Int =
+      GL.glGetNamedBufferParameteri(obj, name)
 
 
 object GLBuffer:
